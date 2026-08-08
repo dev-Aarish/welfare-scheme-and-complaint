@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Users, Trash2, Pencil, X, GraduationCap, Accessibility, Sprout, Briefcase, ChevronDown, UserPlus, Sparkles } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import {
   fetchFamilyMembers,
   addFamilyMember,
@@ -57,9 +58,12 @@ const INITIAL_FORM: FamilyMemberData = {
   isDisability: false,
   landAcres: 0,
   notes: '',
+  state: 'West Bengal',
+  residenceType: 'Rural',
 }
 
 export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?: boolean }) {
+  const { profile: userProfile } = useAuth()
   const [family, setFamily] = useState<FamilyMemberData[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [showModal, setShowModal] = useState<boolean>(false)
@@ -87,6 +91,8 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
           isStudent: false,
           isDisability: false,
           landAcres: 1.5,
+          state: 'West Bengal',
+          residenceType: 'Rural',
         },
         {
           id: 'sample-2',
@@ -100,6 +106,8 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
           isStudent: false,
           isDisability: false,
           landAcres: 0,
+          state: 'West Bengal',
+          residenceType: 'Rural',
         },
       ])
     } else {
@@ -126,8 +134,15 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
   }, [showModal])
 
   const handleOpenAdd = () => {
+    const profileState = userProfile?.state || 'West Bengal'
+    const profileResidence = (userProfile as any)?.residenceType || 'Rural'
+
     setEditingMember(null)
-    setFormData(INITIAL_FORM)
+    setFormData({
+      ...INITIAL_FORM,
+      state: profileState,
+      residenceType: profileResidence,
+    })
     setShowModal(true)
   }
 
@@ -145,6 +160,7 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
       const ok = await deleteFamilyMember(id)
       if (ok || id.startsWith('sample-')) {
         setFamily((prev) => prev.filter((m) => m.id !== id))
+        window.dispatchEvent(new CustomEvent('familyMembersUpdated'))
       }
     }
   }
@@ -186,6 +202,7 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
       }
     }
 
+    window.dispatchEvent(new CustomEvent('familyMembersUpdated'))
     setSubmitting(false)
     setShowModal(false)
   }
@@ -233,7 +250,7 @@ export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?:
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-ink-400">
-                  <span className="font-semibold text-ink-700">{m.age} yrs</span> ({m.dob || 'DOB N/A'}) · {m.gender} · <span className="font-medium text-ink-700">{m.occupation}</span> · ₹{(m.annualIncome || 0).toLocaleString('en-IN')}/yr
+                  <span className="font-semibold text-ink-700">{m.age} yrs</span> ({m.dob || 'DOB N/A'}) · {m.gender} · <span className="font-medium text-ink-700">{m.occupation}</span> · {m.residenceType || 'Rural'} ({m.state || 'West Bengal'}) · ₹{(m.annualIncome || 0).toLocaleString('en-IN')}/yr
                 </p>
               </div>
 
