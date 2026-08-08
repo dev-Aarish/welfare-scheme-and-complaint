@@ -1,6 +1,6 @@
 // API Service Helper for Centralized Welfare Portal & AI Engine
 
-const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = 'http://localhost:5100/api';
 
 export interface BackendScheme {
   id: string;

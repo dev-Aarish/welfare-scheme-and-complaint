@@ -128,6 +128,43 @@ function humanizeRule(r) {
 }
 
 /**
+ * Normalize AI-parser output so LLM sentinel values (-1, "", 0, "Female")
+ * become canonical values or null (missing), which the AST engine understands.
+ */
+function sanitizeContext(context) {
+  if (!context || typeof context !== 'object') return context;
+
+  context.person = context.person || {};
+  context.household = context.household || {};
+  context.location = context.location || {};
+
+  const p = context.person;
+  const h = context.household;
+  const loc = context.location;
+
+  const isMissingToken = (v) =>
+    v === null || v === undefined || (typeof v === 'string' && ['', 'null', 'none', 'na', '-', 'unknown'].includes(v.trim().toLowerCase()));
+
+  // Canonicalize enums (Gemini returns "Female"/"Male", engine expects "FEMALE"/"MALE")
+  if (typeof p.gender === 'string') p.gender = isMissingToken(p.gender) ? null : p.gender.trim().toUpperCase();
+  for (const key of ['occupation', 'socialCategory', 'maritalStatus']) {
+    if (isMissingToken(p[key])) p[key] = null;
+  }
+
+  // Numeric sentinels -> null (unknown)
+  if (typeof p.age === 'number' && p.age < 0) p.age = null;
+  for (const key of ['annualIncome', 'landAcres']) {
+    if (typeof h[key] === 'number' && h[key] < 0) h[key] = null;
+  }
+
+  // Empty/missing strings -> null
+  if (isMissingToken(loc.state)) loc.state = null;
+  if (isMissingToken(loc.district)) loc.district = null;
+
+  return context;
+}
+
+/**
  * Stage 5: Strict Semantic Relevance & Qualification Ranker (0 - 100%)
  */
 function calculateRelevanceScore(scheme, context) {
@@ -239,8 +276,11 @@ export async function matchSchemesPipeline({ rawPrompt, structuredProfile }) {
     };
   }
 
+  // Normalize LLM sentinel values (-1, "", "Female") so missing data stays null
+  context = sanitizeContext(context);
+
   if (!context.location || !context.location.state) {
-    context.location = { state: 'WEST_BENGAL', ...context.location };
+    context.location.state = 'WEST_BENGAL';
   }
 
   // Normalize state representation
@@ -272,8 +312,10 @@ export async function matchSchemesPipeline({ rawPrompt, structuredProfile }) {
     // Stage 5: Strict Semantic Relevance Ranker
     const relevanceScore = calculateRelevanceScore(scheme, context);
 
-    // Strict Filter: Only keep schemes with Relevance Score >= 75
-    if (relevanceScore < 75) {
+    // Strict Filter: keep schemes at/above the neutral baseline (50).
+    // Hard mismatches (other-state schemes, male on women-only schemes,
+    // wrong occupation/student profile) already score far below 50.
+    if (relevanceScore < 50) {
       continue;
     }
 

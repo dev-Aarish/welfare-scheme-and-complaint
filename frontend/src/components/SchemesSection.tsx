@@ -215,8 +215,9 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
     setActiveFollowupScheme(null)
   }
 
-  // Filter schemes list
-  const matches = aiMatchData?.matches || []
+  // Filter schemes list (show first 11 cards; the 12th slot is the catalog CTA card)
+  const allMatches = aiMatchData?.matches || []
+  const matches = allMatches.slice(0, 11)
 
   return (
     <section ref={scope} className="mt-10 lg:mt-12 max-md:mt-8">
@@ -230,7 +231,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           </p>
         </div>
         <span className="shrink-0 self-start rounded-full bg-brand-orange/15 px-3.5 py-1.5 text-xs font-bold text-brand-orange shadow-soft md:self-auto">
-          ⚡ {matches.length} verified matches
+          ⚡ {allMatches.length} verified matches
         </span>
       </div>
 
@@ -305,13 +306,13 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
             const isPotential = item.status === 'POTENTIALLY_ELIGIBLE'
 
             let statusBadgeClass = 'bg-brand-mint/20 text-[#3d7d6b] dark:text-[#7fd1bb]'
-            let statusText = '🟢 ELIGIBLE'
+            let statusText = 'ELIGIBLE'
             if (isMoreInfo) {
               statusBadgeClass = 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
-              statusText = '🔵 MORE INFO REQUIRED'
+              statusText = 'MORE INFO REQUIRED'
             } else if (isPotential) {
               statusBadgeClass = 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
-              statusText = '🟡 POTENTIALLY ELIGIBLE'
+              statusText = 'POTENTIALLY ELIGIBLE'
             }
 
             return (
