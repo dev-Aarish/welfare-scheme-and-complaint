@@ -15,6 +15,50 @@ export async function authHeaders(): Promise<Record<string, string>> {
   return headers
 }
 
+export interface CreateComplaintPayload {
+  title: string
+  description: string
+  category: string
+  priority: string
+  latitude?: string
+  longitude?: string
+  photo?: string | null
+  video?: string | null
+}
+
+export interface ComplaintClassification {
+  category: string
+  categoryLabel: string
+  evidenceRequired: boolean
+  priority: 'low' | 'medium' | 'high' | 'critical'
+}
+
+export async function classifyComplaintWithGemini(payload: { title: string; description: string; additionalInformation?: string }): Promise<ComplaintClassification | null> {
+  const res = await fetch(`${API_BASE_URL}/ai/classify-complaint`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const json = await res.json()
+  return json.success && json.data ? json.data : null
+}
+
+export async function createComplaint(payload: CreateComplaintPayload): Promise<{ ref: string; merged: boolean } | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/complaints`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json()
+    if (json.success && json.data?.ref) return { ref: json.data.ref, merged: Boolean(json.data.merged) }
+    throw new Error(json.error || 'Failed to file complaint.')
+  } catch (error) {
+    console.error('Failed to create complaint:', error)
+    throw error
+  }
+}
+
 export interface BackendScheme {
   id: string;
   externalId?: string;

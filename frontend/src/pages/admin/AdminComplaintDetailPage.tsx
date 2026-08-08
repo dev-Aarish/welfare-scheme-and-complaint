@@ -4,7 +4,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  User,
   ShieldCheck,
   AlertCircle,
   CheckCircle2,
@@ -505,52 +504,30 @@ export function AdminComplaintDetailPage({
                   </div>
                 </div>
 
-                {/* Citizen Details Card */}
+                {/* Reporter privacy card */}
                 <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft">
                   <h2 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
-                    <User className="h-4 w-4 text-brand-navy dark:text-brand-mint" />
-                    <span>Citizen Contact Information</span>
+                    <Lock className="h-4 w-4 text-brand-navy dark:text-brand-mint" />
+                    <span>Reporter Privacy</span>
                   </h2>
-
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 text-xs">
-                    <div className="rounded-2xl border border-border-subtle bg-canvas/40 p-3.5">
-                      <p className="text-ink-400 font-medium">Full Name</p>
-                      <p className="font-bold text-ink-900 mt-1">{complaint.citizen?.name || 'Registered Citizen'}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border-subtle bg-canvas/40 p-3.5">
-                      <p className="text-ink-400 font-medium">Email Address</p>
-                      <p className="font-bold text-ink-900 mt-1">{complaint.citizen?.email || 'N/A'}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border-subtle bg-canvas/40 p-3.5">
-                      <p className="text-ink-400 font-medium">Phone Contact</p>
-                      <p className="font-bold text-ink-900 mt-1">{complaint.citizen?.phone || 'N/A'}</p>
-                    </div>
-                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-ink-400">This complaint is anonymous. Personal identity and contact details are not available to administrators.</p>
                 </div>
 
-                {/* Evidence Image Card */}
+                {/* Evidence gallery */}
                 <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft">
                   <h2 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
                     <ImageIcon className="h-4 w-4 text-brand-orange" />
-                    <span>Uploaded Photo Evidence</span>
+                    <span>Uploaded Evidence</span>
                   </h2>
 
-                  {complaint.imageUrl ? (
-                    <div className="mt-4 group relative overflow-hidden rounded-2xl border border-border-subtle">
-                      <img
-                        src={complaint.imageUrl}
-                        alt="Uploaded evidence"
-                        className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <a
-                        href={complaint.imageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl bg-surface/90 px-3 py-1.5 text-[11px] font-bold text-ink-900 shadow-soft backdrop-blur-sm hover:bg-surface"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        <span>Full Resolution</span>
-                      </a>
+                  {(complaint.evidence?.length || complaint.imageUrl) ? (
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {(complaint.evidence?.length ? complaint.evidence : [{ id: 'legacy', mediaUrl: complaint.imageUrl!, mediaType: 'PHOTO' as const }]).map((item) => (
+                        <a key={item.id} href={item.mediaUrl} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-2xl border border-border-subtle bg-canvas/40">
+                          {item.mediaType === 'VIDEO' ? <video src={item.mediaUrl} controls className="h-40 w-full object-cover" /> : <img src={item.mediaUrl} alt="Uploaded evidence" className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
+                          <p className="flex items-center gap-1 px-3 py-2 text-[11px] font-semibold text-ink-700"><ExternalLink className="h-3 w-3" />Open {item.mediaType.toLowerCase()}</p>
+                        </a>
+                      ))}
                     </div>
                   ) : (
                     <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-canvas/40 py-8 text-center">

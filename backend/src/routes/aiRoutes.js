@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { matchSchemesPipeline } from '../services/aiSchemeMatcher.js';
 import { parseNaturalLanguageProfile } from '../services/aiProfileParser.js';
+import { classifyComplaintWithGemini } from '../services/complaintClassifierService.js';
 import { generateAiChatReply } from '../services/aiChatService.js';
 import { transcribeAudio } from '../services/speechToTextService.js';
 
@@ -148,6 +149,16 @@ router.post('/parse-profile', async (req, res) => {
       error: 'Failed to parse natural language profile',
     });
   }
+});
+
+// POST /api/ai/classify-complaint — Gemini when configured; the frontend has a local fallback.
+router.post('/classify-complaint', async (req, res) => {
+  const { title, description, additionalInformation } = req.body;
+  if (!title?.trim() || !description?.trim()) {
+    return res.status(400).json({ success: false, error: 'Title and description are required.' });
+  }
+  const data = await classifyComplaintWithGemini({ title, description, additionalInformation });
+  return res.status(200).json({ success: true, data, source: data ? 'gemini' : 'local-fallback' });
 });
 
 export default router;

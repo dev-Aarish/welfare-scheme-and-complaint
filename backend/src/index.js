@@ -6,6 +6,7 @@ import familyRoutes from './routes/familyRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import complaintRoutes from './routes/complaintRoutes.js';
 import { prisma } from './config/prismaClient.js';
 import { initEscalationScheduler } from './services/escalationService.js';
 
@@ -15,9 +16,8 @@ const app = express();
 const PORT = process.env.PORT || 5100;
 
 app.use(cors());
-// 10mb so the voice button's base64 audio fits (the default 100kb would
-// reject even a short voice query).
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use('/uploads', express.static('uploads'));
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -31,6 +31,7 @@ app.use('/api/family', familyRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 async function startServer() {
   try {

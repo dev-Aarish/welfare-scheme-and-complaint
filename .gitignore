@@ -15,3 +15,5 @@ pnpm-debug.log*
 .vscode/
 .idea/
 frontend/.dev-dist/
+backend/uploads/*
+!backend/uploads/.gitkeep

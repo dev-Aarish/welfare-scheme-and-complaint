@@ -123,6 +123,12 @@ model Complaint {
   title                String
   description          String?                  @db.Text
   location             String
+  latitude             Float?
+  longitude            Float?
+  category             String                   @default("OTHER")
+  priority             String                   @default("LOW")
+  photoUrl             String?                  @map("photo_url")
+  videoUrl             String?                  @map("video_url")
   status               ComplaintStatus          @default(OPEN)
 
   isEscalated          Boolean                  @default(false) @map("is_escalated")
@@ -140,11 +146,24 @@ model Complaint {
 
   remarks              ComplaintRemark[]
   statusHistory        ComplaintStatusHistory[]
+  evidence             ComplaintEvidence[]
 
   createdAt            DateTime                 @default(now()) @map("created_at")
   updatedAt            DateTime                 @updatedAt @map("updated_at")
 
   @@map("complaints")
+}
+
+model ComplaintEvidence {
+  id          String    @id @default(uuid())
+  complaintId String    @map("complaint_id")
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  mediaUrl    String    @map("media_url")
+  mediaType   String    @map("media_type")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([complaintId])
+  @@map("complaint_evidence")
 }
 
 model ComplaintRemark {

@@ -1,0 +1,7 @@
+ALTER TABLE "complaints"
+  ADD COLUMN "latitude" DOUBLE PRECISION,
+  ADD COLUMN "longitude" DOUBLE PRECISION,
+  ADD COLUMN "category" TEXT NOT NULL DEFAULT 'OTHER',
+  ADD COLUMN "priority" TEXT NOT NULL DEFAULT 'LOW',
+  ADD COLUMN "photo_url" TEXT,
+  ADD COLUMN "video_url" TEXT;

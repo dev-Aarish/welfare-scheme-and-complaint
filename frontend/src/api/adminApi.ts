@@ -155,15 +155,6 @@ export async function fetchAdminDashboardStats(demo = false): Promise<{
   }
 }
 
-export interface CitizenInfo {
-  id: string | number;
-  name: string;
-  email: string;
-  phone?: string;
-  role?: string;
-  state?: string;
-}
-
 export interface DepartmentItem {
   id: string;
   name: string;
@@ -181,6 +172,13 @@ export interface RemarkItem {
   id: string;
   adminName: string;
   remark: string;
+  createdAt: string;
+}
+
+export interface EvidenceItem {
+  id: string;
+  mediaUrl: string;
+  mediaType: 'PHOTO' | 'VIDEO';
   createdAt: string;
 }
 
@@ -205,6 +203,7 @@ export interface ComplaintItem {
   latitude?: number;
   longitude?: number;
   imageUrl?: string | null;
+  evidence?: EvidenceItem[];
   isEscalated?: boolean;
   escalationLevel?: number;
   escalatedAt?: string | null;
@@ -212,7 +211,6 @@ export interface ComplaintItem {
   assignedOfficer?: OfficerItem | null;
   createdAt: string;
   updatedAt: string;
-  citizen: CitizenInfo;
   remarks?: RemarkItem[];
   statusHistory?: StatusHistoryItem[];
 }
