@@ -362,7 +362,7 @@ export function AdminComplaintsPage({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search complaints by ID, title, citizen name, email, or ward location..."
+                placeholder="Search complaints by ID, title, description, or ward location..."
                 className="w-full rounded-2xl border border-border-subtle bg-canvas/70 py-3 pl-11 pr-10 text-sm text-ink-900 placeholder-ink-400 transition-colors focus:border-brand-orange focus:outline-none focus:ring-[3px] focus:ring-brand-orange/15"
               />
               {search && (
@@ -522,7 +522,7 @@ export function AdminComplaintsPage({
                 <tr>
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Complaint Title &amp; Location</th>
-                  <th className="px-6 py-4">Citizen</th>
+                  <th className="px-6 py-4">Reporter</th>
                   <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4">Priority</th>
                   <th className="px-6 py-4">Status</th>
@@ -608,12 +608,8 @@ export function AdminComplaintsPage({
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-ink-900">
-                          {comp.citizen?.name || 'Registered Citizen'}
-                        </p>
-                        <p className="text-ink-400 text-[11px]">
-                          {comp.citizen?.email !== 'N/A' ? comp.citizen?.email : comp.citizen?.phone}
-                        </p>
+                        <p className="font-semibold text-ink-900">Anonymous reporter</p>
+                        <p className="text-ink-400 text-[11px]">Identity protected</p>
                       </td>
                       <td className="px-6 py-4 font-medium text-ink-700">
                         {formatCategory(comp.category)}

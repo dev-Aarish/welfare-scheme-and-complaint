@@ -24,6 +24,7 @@ export type TabId =
   | 'profile'
   | 'schemes'
   | 'helpline'
+  | 'complaints'
 
 export interface Tab {
   id: TabId
@@ -38,6 +39,7 @@ export const tabs: Tab[] = [
   { id: 'map', label: 'Block map', icon: Map, officerOnly: true },
   { id: 'schemes', label: 'Scheme catalog', icon: FileText },
   { id: 'helpline', label: 'Helpline', icon: Phone },
+  { id: 'complaints', label: 'File complaint', icon: FileText },
   { id: 'chat', label: 'Sahayak chat', icon: MessagesSquare },
   { id: 'profile', label: 'My profile', icon: UserRound },
 ]

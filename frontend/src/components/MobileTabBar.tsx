@@ -23,7 +23,7 @@ interface TabBarItem {
 const CITIZEN_TABS: TabBarItem[] = [
   { id: 'overview', label: 'Home', icon: LayoutGrid },
   { id: 'schemes', label: 'Schemes', icon: FileText },
-  { id: 'helpline', label: 'Report', icon: Plus },
+  { id: 'complaints', label: 'Report', icon: Plus },
   { id: 'chat', label: 'Chat', icon: MessagesSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ]

@@ -345,9 +345,7 @@ function filterSampleComplaints({
       c.ref.toLowerCase().includes(search) ||
       c.title.toLowerCase().includes(search) ||
       c.description.toLowerCase().includes(search) ||
-      c.location.toLowerCase().includes(search) ||
-      c.citizen.name.toLowerCase().includes(search) ||
-      c.citizen.email.toLowerCase().includes(search)
+      c.location.toLowerCase().includes(search)
     );
   }
 
@@ -359,6 +357,12 @@ function filterSampleComplaints({
     complaints: filtered.slice((page - 1) * limit, page * limit),
     total: filtered.length,
   };
+}
+
+/** Admin users receive complaint details, never reporter identity. */
+function anonymizeComplaint(complaint) {
+  const { citizen, ...anonymousComplaint } = complaint;
+  return anonymousComplaint;
 }
 
 /** Helper to infer category if missing in database record */
@@ -397,6 +401,7 @@ function formatComplaintRecord(comp) {
     latitude: comp.latitude || 22.4831,
     longitude: comp.longitude || 88.1092,
     imageUrl: comp.imageUrl || comp.photoUrl || null,
+    evidence: comp.evidence || [],
     isEscalated: Boolean(comp.isEscalated),
     escalationLevel: comp.escalationLevel || (comp.isEscalated ? 1 : 0),
     escalatedAt: comp.escalatedAt || null,
@@ -409,21 +414,6 @@ function formatComplaintRecord(comp) {
     } : null,
     createdAt: comp.createdAt,
     updatedAt: comp.updatedAt,
-    citizen: comp.user ? {
-      id: comp.user.id,
-      name: comp.user.fullName || comp.user.name || 'Anonymous Citizen',
-      email: comp.user.email || 'N/A',
-      phone: comp.user.phone || 'N/A',
-      role: comp.user.role || 'CITIZEN',
-      state: comp.user.state || 'WEST_BENGAL'
-    } : {
-      id: comp.userId || 'anon',
-      name: 'Registered Citizen',
-      email: 'citizen@sevanest.gov.in',
-      phone: '+91-9876543210',
-      role: 'CITIZEN',
-      state: 'WEST_BENGAL'
-    },
     remarks: comp.remarks ? comp.remarks.map(r => ({
       id: r.id,
       adminName: r.admin ? (r.admin.fullName || r.admin.name) : 'Admin',
@@ -469,7 +459,7 @@ export async function getComplaints(req, res) {
         page,
         limit,
       });
-      complaints = sampleResult.complaints;
+      complaints = sampleResult.complaints.map(anonymizeComplaint);
       total = sampleResult.total;
 
       const sampleTotalPages = Math.ceil(total / limit) || 1;
@@ -503,8 +493,6 @@ export async function getComplaints(req, res) {
           { title: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
           { location: { contains: search, mode: 'insensitive' } },
-          { user: { fullName: { contains: search, mode: 'insensitive' } } },
-          { user: { email: { contains: search, mode: 'insensitive' } } },
         ];
       }
 
@@ -524,9 +512,9 @@ export async function getComplaints(req, res) {
         prisma.complaint.findMany({
           where: whereClause,
           include: {
-            user: true,
             assignedDepartment: true,
             assignedOfficer: true,
+            evidence: { orderBy: { createdAt: 'desc' } },
             remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
             statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
           },
@@ -559,7 +547,7 @@ export async function getComplaints(req, res) {
         page,
         limit,
       });
-      complaints = sampleResult.complaints;
+      complaints = sampleResult.complaints.map(anonymizeComplaint);
       total = sampleResult.total;
     }
 
@@ -602,7 +590,7 @@ export async function getComplaintById(req, res) {
     if (req.query.demo === '1') {
       const foundSample = SAMPLE_COMPLAINTS.find(c => c.id === id || c.ref.toLowerCase() === id.toLowerCase());
       if (foundSample) {
-        complaint = foundSample;
+        complaint = anonymizeComplaint(foundSample);
       }
 
       if (!complaint) {
@@ -626,9 +614,9 @@ export async function getComplaintById(req, res) {
           ],
         },
         include: {
-          user: true,
           assignedDepartment: true,
           assignedOfficer: true,
+          evidence: { orderBy: { createdAt: 'desc' } },
           remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
           statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
         },
@@ -644,7 +632,7 @@ export async function getComplaintById(req, res) {
     if (!complaint) {
       const foundSample = SAMPLE_COMPLAINTS.find(c => c.id === id || c.ref.toLowerCase() === id.toLowerCase());
       if (foundSample) {
-        complaint = foundSample;
+        complaint = anonymizeComplaint(foundSample);
       }
     }
 
@@ -699,9 +687,9 @@ export async function assignComplaint(req, res) {
             where: { id: dbComplaint.id },
             data: updateData,
             include: {
-              user: true,
               assignedDepartment: true,
               assignedOfficer: true,
+              evidence: { orderBy: { createdAt: 'desc' } },
               remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
               statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
             },
@@ -761,7 +749,7 @@ export async function assignComplaint(req, res) {
         });
       }
 
-      updatedComplaint = sample;
+      updatedComplaint = anonymizeComplaint(sample);
     }
 
     return res.status(200).json({
@@ -810,9 +798,9 @@ export async function updateComplaintStatus(req, res) {
             where: { id: dbComplaint.id },
             data: { status: newStatusUpper },
             include: {
-              user: true,
               assignedDepartment: true,
               assignedOfficer: true,
+              evidence: { orderBy: { createdAt: 'desc' } },
               remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
               statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
             },
@@ -857,7 +845,7 @@ export async function updateComplaintStatus(req, res) {
       };
 
       sample.statusHistory.unshift(newHistoryItem);
-      updatedComplaint = sample;
+      updatedComplaint = anonymizeComplaint(sample);
     }
 
     return res.status(200).json({
