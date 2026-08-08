@@ -15,7 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 5100;
 
 app.use(cors());
-app.use(express.json());
+// 10mb so the voice button's base64 audio fits (the default 100kb would
+// reject even a short voice query).
+app.use(express.json({ limit: '10mb' }));
 
 // Health Check
 app.get('/health', (req, res) => {

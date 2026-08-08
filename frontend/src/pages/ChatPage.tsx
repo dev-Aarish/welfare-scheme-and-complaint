@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, RotateCcw, Send } from 'lucide-react'
+import { Mic, RotateCcw, Send, Square } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { gsap, useGSAP } from '../lib/animations'
 import {
@@ -15,8 +15,9 @@ import {
   quickReplies,
 } from '../data'
 import { useAuth } from '../context/AuthContext'
-import { sendChatMessageApi } from '../services/api'
+import { sendChatMessageApi, transcribeAudioApi } from '../services/api'
 import { MarkdownContent } from '../components/MarkdownContent'
+import { downsamplePcm, encodeWav } from '../utils/voice'
 import type { Role } from './auth/copy'
 
 interface ChatMessage {
@@ -117,14 +118,22 @@ export function ChatPage({ role }: { role: Role }) {
   )
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
-  const [listening, setListening] = useState(false)
+  /* Voice button state — 'listening' while recording, 'transcribing' while
+     the audio is sent to the backend, 'error' when nothing usable was heard. */
+  const [voiceStatus, setVoiceStatus] = useState<
+    'idle' | 'listening' | 'transcribing' | 'error'
+  >('idle')
+  const [voiceHint, setVoiceHint] = useState('')
   const replyIndex = useRef(0)
   /* Resume ids after the restored history so new messages never collide and
      only *new* bubbles animate in (restored ones appear instantly). */
   const restoredMaxId = restored ? maxMessageId(restored) : 0
   const idRef = useRef(restoredMaxId + 1)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const messagesRef = useRef<ChatMessage[]>([])
+  /* Lets the mic button toggle: tap while listening → stop & transcribe. */
+  const stopVoiceRef = useRef<(() => void) | null>(null)
   /* One AI turn at a time — guards against double-send via quick replies
      while a previous request is still in flight. */
   const aiBusyRef = useRef(false)
@@ -298,7 +307,8 @@ export function ChatPage({ role }: { role: Role }) {
 
   const send = () => {
     const text = input.trim()
-    if (!text || typing || listening) return
+    if (!text || typing || voiceStatus !== 'idle') return
+    setVoiceHint('')
     setInput('')
     append({ role: 'user', text })
     void aiReply(text)
@@ -328,11 +338,162 @@ export function ChatPage({ role }: { role: Role }) {
     })
   }
 
-  const startVoice = () => {
-    if (listening || typing) return
+  /* ── Voice input ─────────────────────────────────────────
+     Primary path: record audio in the browser, send it to the backend and
+     let Sarvam AI transcribe it in the chat's selected language (this is what
+     makes Bengali & Hindi work). The transcript lands in the input box for
+     review before sending. Falls back to the browser's Web Speech API
+     (English-only in most browsers) when recording isn't available or the
+     server has no SARVAM_API_KEY. */
 
-    /* Minimal Web Speech API types — the DOM lib doesn't ship them for all
-       TS versions, so model only what we use. */
+  const startVoice = () => {
+    if (typing || voiceStatus === 'transcribing') return
+    // Tap again while listening → stop and transcribe what was said.
+    if (voiceStatus === 'listening') {
+      stopVoiceRef.current?.()
+      return
+    }
+    setVoiceHint('')
+    const w = window as unknown as {
+      AudioContext?: typeof AudioContext
+      webkitAudioContext?: typeof AudioContext
+    }
+    const canRecord =
+      !!navigator.mediaDevices?.getUserMedia && !!(w.AudioContext || w.webkitAudioContext)
+    if (!canRecord) {
+      startVoiceFallback()
+      return
+    }
+    void beginVoiceRecording()
+  }
+
+  const beginVoiceRecording = async () => {
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    let stream: MediaStream | null = null
+    let audioCtx: AudioContext | null = null
+    let source: MediaStreamAudioSourceNode | null = null
+    let processor: ScriptProcessorNode | null = null
+    const chunks: Float32Array[] = []
+    let finished = false
+
+    const stopAndTranscribe = () => {
+      if (finished) return
+      finished = true
+      stopVoiceRef.current = null
+      // Cancelled while the browser was still asking for the mic.
+      if (!stream) {
+        setVoiceStatus('idle')
+        setVoiceHint('')
+        return
+      }
+      stream.getTracks().forEach((track) => track.stop())
+      source?.disconnect()
+      processor?.disconnect()
+      const sampleRate = audioCtx?.sampleRate ?? 48000
+      if (audioCtx && audioCtx.state !== 'closed') void audioCtx.close()
+
+      const total = chunks.reduce((n, c) => n + c.length, 0)
+      // Too quiet / too short to be a question — skip the API call.
+      if (total < 1600) {
+        setVoiceStatus('error')
+        setVoiceHint('Could not hear that clearly — please try again')
+        return
+      }
+      setVoiceStatus('transcribing')
+      setVoiceHint('')
+
+      const merged = new Float32Array(total)
+      let offset = 0
+      for (const c of chunks) {
+        merged.set(c, offset)
+        offset += c.length
+      }
+      const wav = encodeWav(downsamplePcm(merged, sampleRate, 16000), 16000)
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : ''
+        const audioBase64 = dataUrl.split(',')[1]
+        if (audioBase64) {
+          void transcribe(audioBase64)
+        } else {
+          setVoiceStatus('error')
+          setVoiceHint('Could not capture the audio — please try again')
+        }
+      }
+      reader.readAsDataURL(new Blob([wav], { type: 'audio/wav' }))
+    }
+
+    stopVoiceRef.current = stopAndTranscribe
+    // Listening state is set before the permission await so a second mic tap
+    // cancels while the browser is still asking for the microphone.
+    setVoiceStatus('listening')
+    setVoiceHint('')
+    // Safety cap — never record longer than ~45s.
+    timersRef.current.push(window.setTimeout(stopAndTranscribe, 45000))
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (finished) {
+        // Cancelled while the permission prompt was open — release the mic.
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
+      audioCtx = new Ctor()
+      source = audioCtx.createMediaStreamSource(stream)
+      processor = audioCtx.createScriptProcessor(4096, 1, 1)
+      processor.onaudioprocess = (e) => {
+        chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)))
+      }
+      source.connect(processor)
+      // Connecting to the destination keeps onaudioprocess firing in browsers
+      // where an unconnected script processor goes silent.
+      processor.connect(audioCtx.destination)
+    } catch (err) {
+      console.warn('Microphone unavailable, using browser speech fallback:', err)
+      finished = true
+      stopVoiceRef.current = null
+      stream?.getTracks().forEach((track) => track.stop())
+      if (audioCtx && audioCtx.state !== 'closed') void audioCtx.close()
+      setVoiceStatus('idle')
+      startVoiceFallback()
+    }
+  }
+
+  /* Send the recording to the backend (Sarvam STT) and put the transcript in
+     the input box for review. */
+  const transcribe = async (audioBase64: string) => {
+    const result = await transcribeAudioApi({
+      audioBase64,
+      mimeType: 'audio/wav',
+      language,
+    })
+    if (result.transcript) {
+      setInput(result.transcript)
+      setVoiceStatus('idle')
+      setVoiceHint('Transcribed — review it, then press Send')
+      inputRef.current?.focus()
+    } else if (result.available) {
+      // Sarvam heard nothing usable, or the service reported an error — show
+      // the real reason when we have one.
+      setVoiceStatus('error')
+      setVoiceHint(
+        result.error || 'Could not hear that clearly — please try again',
+      )
+    } else {
+      // No Sarvam key on the server (or it's unreachable) → browser fallback.
+      setVoiceStatus('idle')
+      setVoiceHint('')
+      startVoiceFallback()
+    }
+  }
+
+  /* Browser fallback — Web Speech API, which only transcribes English well in
+     most browsers. Used when recording is unavailable or Sarvam isn't
+     configured on the server. The transcript also lands in the input box for
+     review, same as the Sarvam path. */
+  const startVoiceFallback = () => {
     interface RecognitionResultLike {
       transcript?: string
     }
@@ -347,6 +508,7 @@ export function ChatPage({ role }: { role: Role }) {
       onerror: (() => void) | null
       onend: (() => void) | null
       start: () => void
+      stop: () => void
     }
     const w = window as unknown as {
       SpeechRecognition?: new () => SpeechRecognitionLike
@@ -361,25 +523,42 @@ export function ChatPage({ role }: { role: Role }) {
     recognition.lang = language === 'bn' ? 'bn-IN' : language === 'hi' ? 'hi-IN' : 'en-IN'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
-    setListening(true)
-    recognition.onresult = (event) => {
-      const text = event.results?.[0]?.[0]?.transcript?.trim()
-      setListening(false)
-      if (text) {
-        append({ role: 'user', text })
-        void aiReply(text)
+    setVoiceStatus('listening')
+    // Let the mic button stop the fallback recognition too (the button shows
+    // a stop icon while listening).
+    stopVoiceRef.current = () => {
+      try {
+        recognition.stop()
+      } catch {
+        // recognition already ended
       }
     }
-    recognition.onerror = () => setListening(false)
-    recognition.onend = () => setListening(false)
+    recognition.onresult = (event) => {
+      const text = event.results?.[0]?.[0]?.transcript?.trim()
+      setVoiceStatus('idle')
+      if (text) {
+        setInput(text)
+        setVoiceHint('Transcribed — review it, then press Send')
+        inputRef.current?.focus()
+      }
+    }
+    recognition.onerror = () => {
+      stopVoiceRef.current = null
+      setVoiceStatus('idle')
+    }
+    recognition.onend = () => {
+      stopVoiceRef.current = null
+      setVoiceStatus('idle')
+    }
     recognition.start()
   }
 
-  /* Fallback when the browser has no SpeechRecognition (demo the turn). */
+  /* Last-resort fallback when the browser has neither audio recording nor
+     SpeechRecognition (demo the turn). */
   const demoVoice = () => {
-    setListening(true)
+    setVoiceStatus('listening')
     schedule(() => {
-      setListening(false)
+      setVoiceStatus('idle')
       const question = isOfficer
         ? 'Which reports are due this week?'
         : 'Am I eligible for a housing scheme?'
@@ -390,7 +569,11 @@ export function ChatPage({ role }: { role: Role }) {
 
   useEffect(() => {
     const timers = timersRef.current
-    return () => timers.forEach((id) => window.clearTimeout(id))
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id))
+      // Release the mic if the user navigates away mid-recording.
+      stopVoiceRef.current?.()
+    }
   }, [])
 
   /* Live snapshot of messages so async AI replies always see the latest
@@ -412,7 +595,7 @@ export function ChatPage({ role }: { role: Role }) {
   /* Start a fresh conversation (clears this user's saved history). Guarded
      so an in-flight AI reply can't land in the brand-new conversation. */
   const newChat = () => {
-    if (aiBusyRef.current || typing) return
+    if (aiBusyRef.current || typing || voiceStatus !== 'idle') return
     try {
       window.localStorage.removeItem(storageKey)
     } catch {
@@ -548,21 +731,35 @@ export function ChatPage({ role }: { role: Role }) {
           <div className="flex items-center gap-2 rounded-[20px] border border-border-subtle bg-canvas/50 p-1.5 max-md:gap-1.5 max-md:rounded-[16px] max-md:p-1">
             <button
               onClick={startVoice}
-              aria-label="Speak your question"
+              aria-label={
+                voiceStatus === 'listening' ? 'Stop recording' : 'Speak your question'
+              }
+              disabled={voiceStatus === 'transcribing'}
+              title={
+                voiceStatus === 'listening' ? 'Tap to stop & transcribe' : 'Speak your question'
+              }
               className={`flex shrink-0 items-center justify-center rounded-[12px] p-3 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-brand-orange max-md:p-2.5 ${
-                listening
+                voiceStatus === 'listening'
                   ? 'bg-brand-orange text-white dark:text-[#16151b]'
                   : 'text-ink-700 hover:bg-surface'
-              }`}
+              } ${voiceStatus === 'transcribing' ? 'cursor-wait opacity-60' : ''}`}
             >
-              <Mic className="h-4 w-4" strokeWidth={1.5} />
+              {voiceStatus === 'listening' ? (
+                <Square className="h-4 w-4" strokeWidth={1.5} />
+              ) : (
+                <Mic className="h-4 w-4" strokeWidth={1.5} />
+              )}
             </button>
             <input
+              ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setVoiceHint('')
+                setInput(e.target.value)
+              }}
               onKeyDown={(e) => e.key === 'Enter' && send()}
               placeholder={
-                listening ? 'Listening… speak now' : 'Type your question…'
+                voiceStatus === 'listening' ? 'Listening… speak now' : 'Type your question…'
               }
               aria-label="Your question"
               className="w-full min-w-0 flex-1 bg-transparent px-3 text-[15px] text-ink-900 placeholder:text-ink-400 focus:outline-none max-md:text-[13px]"
@@ -576,10 +773,19 @@ export function ChatPage({ role }: { role: Role }) {
               <span className="hidden sm:inline">Send</span>
             </button>
           </div>
-          {listening && (
+          {(voiceStatus !== 'idle' || voiceHint) && (
             <p className="mt-2 flex items-center gap-2 text-xs text-ink-400">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-orange" />
-              Listening in {LANG_NAMES[language]}… you can speak now
+              <span
+                className={`h-2 w-2 rounded-full bg-brand-orange ${
+                  voiceStatus === 'error' ? '' : 'animate-pulse'
+                }`}
+              />
+              {voiceStatus === 'listening' &&
+                `Listening in ${LANG_NAMES[language]}… tap the mic to stop`}
+              {voiceStatus === 'transcribing' && 'Transcribing…'}
+              {voiceStatus === 'error' &&
+                (voiceHint || 'Could not hear that clearly — try again')}
+              {voiceStatus === 'idle' && voiceHint}
             </p>
           )}
         </div>
