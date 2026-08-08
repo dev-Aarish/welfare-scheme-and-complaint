@@ -236,7 +236,6 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme, onMatchesChange 
         data: self,
       })
     }
-    }
 
     choices.push(
       ...familyMembers.map((m) => {
