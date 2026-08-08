@@ -253,6 +253,59 @@ export async function sendChatMessageApi(payload: {
   return null
 }
 
+export interface TranscribeResult {
+  transcript: string | null
+  /** false when the server has no Sarvam key or is unreachable — the caller
+   *  then falls back to the browser's built-in speech recognition. */
+  available: boolean
+  /** Human-readable reason from the backend when transcription failed. */
+  error?: string
+}
+
+/** Voice button → text. Sends recorded audio to the backend, which transcribes
+ *  it with the Sarvam AI speech-to-text API in the chat's selected language
+ *  (bn-IN / hi-IN / en-IN). Returns the transcript, or available:false so the
+ *  caller can degrade gracefully. */
+export async function transcribeAudioApi(payload: {
+  audioBase64: string
+  mimeType: string
+  language: string
+}): Promise<TranscribeResult> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 30000)
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Backend route expects the field to be named `audio` (base64 string).
+      body: JSON.stringify({
+        audio: payload.audioBase64,
+        mimeType: payload.mimeType,
+        language: payload.language,
+      }),
+      signal: controller.signal,
+    })
+    const json = await res.json()
+    if (json.success && typeof json.transcript === 'string' && json.transcript.trim()) {
+      return { transcript: json.transcript.trim(), available: true }
+    }
+    if (json.available === false) {
+      return { transcript: null, available: false }
+    }
+    // Server reachable, but transcription came back empty or failed.
+    return {
+      transcript: null,
+      available: true,
+      error: typeof json.error === 'string' ? json.error : undefined,
+    }
+  } catch (err) {
+    console.error('Voice transcription request failed:', err)
+    return { transcript: null, available: false }
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
 /** Editable citizen profile fields (the "My profile" page form). */
 export interface HouseholdProfile {
   fullName?: string | null;
