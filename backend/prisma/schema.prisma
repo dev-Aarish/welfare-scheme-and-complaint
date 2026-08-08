@@ -1,0 +1,75 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Scheme {
+  id                String    @id @default(uuid())
+  externalId        String?   @map("external_id")
+  source            String    @default("system")
+  sourceUrl         String?   @map("source_url")
+  sourceLastUpdated DateTime? @map("source_last_updated")
+  
+  title             String
+  category          String
+  tag               String?
+  description       String    @db.Text
+  benefit           String
+  eligibility       String    @db.Text
+  isActive          Boolean   @default(true) @map("is_active")
+  applicationsCount Int       @default(0) @map("applications_count")
+  
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@unique([source, externalId], name: "source_external_id")
+  @@index([category])
+  @@index([title])
+  @@map("schemes")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String?        @unique
+  fullName      String         @map("full_name")
+  phone         String?
+  state           String   @default("WEST_BENGAL")
+  casteCategory String         @default("General") @map("caste_category")
+  annualIncome  Float          @default(120000) @map("annual_income")
+  
+  familyMembers FamilyMember[]
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model FamilyMember {
+  id              String   @id @default(uuid())
+  userId          String?  @map("user_id")
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  fullName        String   @map("full_name")
+  relation        String   // Father, Mother, Spouse, Son, Daughter, Brother, Sister, Dependent Senior, Other
+  dob             String?  // Date of Birth (YYYY-MM-DD)
+  age             Int
+  gender          String   // Male, Female, Other
+  state           String   @default("WEST_BENGAL")
+  residenceType   String   @default("RURAL") @map("residence_type") // Rural, Urban
+  occupation      String   // Farmer, Daily Wage Worker, Salaried, Student, Unemployed, Retired, Small Business, Homemaker
+  annualIncome    Float    @default(0) @map("annual_income")
+  isStudent       Boolean  @default(false) @map("is_student")
+  isDisability    Boolean  @default(false) @map("is_disability")
+  landAcres       Float    @default(0) @map("land_acres")
+  notes           String?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("family_members")
+}

@@ -1,0 +1,250 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (design.md §12): `.dark` on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ── Fonts (design.md §3) ─────────────────────────────── */
+  --font-display: "Quicksand", "Poppins", "Segoe UI", sans-serif;
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+
+  /* ── Core neutrals (light, design.md §2) ───────────────── */
+  --color-canvas: #eae7e0;
+  --color-canvas-alt: #dedbd3;
+  --color-surface: #ffffff;
+  --color-ink-900: #201c2a;
+  --color-ink-700: #3a3644;
+  --color-ink-400: #8a8790;
+  --color-border-subtle: #e7e4dd;
+
+  /* ── Brand / accent ───────────────────────────────────── */
+  --color-brand-navy: #211d2c;
+  --color-brand-orange: #e38f55;
+  --color-brand-mint: #6fbba6;
+  /* Text placed on brand-navy surfaces (inverts in dark mode) */
+  --color-navy-contrast: #ffffff;
+
+  /* ── Flat pastel card fields ──────────────────────────── */
+  --color-card-lavender: #a6b1d6;
+  --color-card-olive: #a79c74;
+  --color-card-terracotta: #dd8f5c;
+  --color-card-sage: #8ca89b;
+  --color-card-mauve: #afa6ac;
+  --color-card-khaki: #c3bc82;
+
+  /* ── Hero band gradient ───────────────────────────────── */
+  --color-hero-sage-start: #d2d8cb;
+  --color-hero-sage-end: #ffffff;
+
+  /* ── Elevation (design.md §5) ─────────────────────────── */
+  --shadow-soft: 0 12px 32px rgba(32, 28, 42, 0.06);
+  --shadow-lift: 0 18px 40px rgba(32, 28, 42, 0.11);
+}
+
+/* Diagonal hero band: sage (top-left) → white (bottom-right) */
+@utility hero-band {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-hero-sage-start) 0%,
+    var(--color-hero-sage-end) 68%
+  );
+}
+
+/* Swipeable chip rows (mobile plan §4) stay scrollable but never show a
+   scrollbar — the rows are short and the gesture is discoverable. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Rendered height of the mobile top bar (MobileHeader): 66px content +
+       1px border. The full-screen mobile chat card in ChatPage positions
+       itself below this — keep the two in sync. */
+    --mobile-topbar-h: 67px;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink-900;
+  }
+  ::selection {
+    background: var(--color-brand-mint);
+    color: #16151b;
+  }
+  button {
+    cursor: pointer;
+  }
+
+  /* ── Dark palette (design.md §12) ────────────────────────
+     Same design language, inverted for low-light: warm/muted,
+     not pure black; cards deepened rather than glowing. */
+  .dark {
+    color-scheme: dark;
+
+    /* core neutrals */
+    --color-canvas: #16151b;
+    --color-canvas-alt: #1d1c24;
+    --color-surface: #211f29;
+    --color-ink-900: #f2f0ec;
+    --color-ink-700: #c9c6d1;
+    --color-ink-400: #8b8893;
+    --color-border-subtle: #33313d;
+
+    /* brand / accent — navy inverts to the lightest tone to stay dominant */
+    --color-brand-navy: #f2f0ec;
+    --color-brand-orange: #f0a468;
+    --color-brand-mint: #7fd1bb;
+    --color-navy-contrast: #16151b;
+
+    /* hero band gradient */
+    --color-hero-sage-start: #232a25;
+    --color-hero-sage-end: #1d1c24;
+
+    /* deepened card fields */
+    --color-card-lavender: #5c6690;
+    --color-card-olive: #6e6448;
+    --color-card-terracotta: #b36a3c;
+    --color-card-sage: #556e63;
+    --color-card-mauve: #5f5761;
+    --color-card-khaki: #7a744f;
+
+    /* deeper shadows for low-light */
+    --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.35);
+    --shadow-lift: 0 18px 40px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Respect users who prefer reduced motion (design.md §11.5) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ── Motion utilities (Animations.md) ─────────────────────── */
+
+/* Tab transition: re-mounting <main key={tab}> fades + slides in (§3.2) */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: page-enter 220ms ease-out;
+}
+
+/* Auth form steps (mobile → OTP, role/mode switches): soft 8px slide-in */
+@keyframes step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.step-enter {
+  animation: step-enter 200ms ease-out;
+}
+
+/* Ambient doodle drift — slow breathing of the background line-art (§3.3) */
+@keyframes doodle-drift {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(9px, -7px) rotate(3deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+.doodle-drift {
+  animation: doodle-drift 32s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Chat bubble entrance (iMessage-style pop, §3.2) */
+@keyframes bubble-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.bubble-pop {
+  animation: bubble-pop 180ms ease-out;
+}
+
+/* Search / complaint bar focus ring pulse (§3.1) */
+@keyframes search-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-orange) 50%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+.search-pulse:focus-within {
+  animation: search-pulse 900ms ease-out 2;
+}
+
+/* Block map — "community pulse" (officer desk): slow concentric ripples
+   emanating from the most-active ward. Reduced-motion renders a static
+   ring instead (the global reduce rule above zeroes animation durations). */
+@keyframes ward-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.85;
+  }
+  70% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+.ward-pulse-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ward-pulse 2.8s ease-out infinite;
+}
+
+/* Reduced motion: drop the animated ripple entirely — the static outer
+   ring stays as the calm fallback (the global reduce rule above only
+   zeroes durations, which would leave the rings frozen mid-frame). */
+@media (prefers-reduced-motion: reduce) {
+  .ward-pulse-ring {
+    opacity: 0;
+  }
+}
+
+/* Theme-switch crossfade (§4 Phase 2): applied transiently while the theme
+   class flips, so background/border/text colors ease instead of snapping. */
+.theme-fade-active,
+.theme-fade-active * {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
