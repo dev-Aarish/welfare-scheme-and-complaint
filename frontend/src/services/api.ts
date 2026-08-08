@@ -1,6 +1,19 @@
 // API Service Helper for Centralized Welfare Portal & AI Engine
 
+import { supabase } from '../lib/supabase'
+
 export const API_BASE_URL = 'http://localhost:5100/api';
+
+/** Attaches the Supabase JWT when a session exists, so protected
+ *  backend routes can identify the caller. */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (!supabase) return headers
+  const { data } = await supabase.auth.getSession()
+  const token = data?.session?.access_token
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
 
 export interface BackendScheme {
   id: string;
@@ -132,7 +145,7 @@ export async function addFamilyMember(member: FamilyMemberData): Promise<FamilyM
   try {
     const res = await fetch(`${API_BASE_URL}/family`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify(member),
     });
     const json = await res.json();
@@ -152,7 +165,7 @@ export async function updateFamilyMember(
   try {
     const res = await fetch(`${API_BASE_URL}/family/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify(member),
     });
     const json = await res.json();
@@ -169,6 +182,7 @@ export async function deleteFamilyMember(id: string): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE_URL}/family/${id}`, {
       method: 'DELETE',
+      headers: await authHeaders(),
     });
     const json = await res.json();
     return Boolean(json.success);

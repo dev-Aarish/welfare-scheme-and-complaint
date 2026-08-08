@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import {
-  officer,
   officerStats,
   officerQueue,
   officerCases,
@@ -9,6 +8,7 @@ import {
 } from '../../data'
 import { gsap, useGSAP } from '../../lib/animations'
 import { useReveal } from '../../hooks/useReveal'
+import { useAuth } from '../../context/AuthContext'
 import { CARD_COLORS } from '../../components/SchemeCard'
 import { ListRow } from '../../components/ListRow'
 import { ILLUSTRATIONS } from '../../components/illustrations'
@@ -23,6 +23,7 @@ export function OfficerPage() {
   const heroScope = useRef<HTMLElement>(null)
   const queueScope = useReveal<HTMLElement>()
   const logScope = useReveal<HTMLElement>()
+  const { identity } = useAuth()
 
   /* Signature entrance (Animations.md §3.1 pattern, mirror of the citizen
      hero): eyebrow → greeting → subtext → stat pills → SLA card, then the
@@ -117,7 +118,7 @@ export function OfficerPage() {
               data-officer="title"
               className="mt-5 font-display text-4xl font-semibold leading-tight text-ink-900 sm:text-[40px] max-lg:hidden"
             >
-              Good morning, Officer {officer.name.split(' ')[0]} 👋
+              Good morning, Officer {identity.firstName} 👋
             </h1>
             <p
               data-officer="sub"

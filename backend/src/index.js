@@ -23,6 +23,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/ai', aiRoutes);

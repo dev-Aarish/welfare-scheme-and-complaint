@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { user } from '../data'
+import { useAuth } from '../context/AuthContext'
 import { gsap, useGSAP } from '../lib/animations'
 
 const steps = [
@@ -12,6 +13,7 @@ const steps = [
 
 export function GuideCard() {
   const scope = useRef<HTMLDivElement>(null)
+  const { guest, identity } = useAuth()
 
   /* Signature moment (Animations.md §3.1): the spiral flourish draws itself,
      the progress line sweeps in, the orange dot glides to ~40%, and the step
@@ -90,7 +92,9 @@ export function GuideCard() {
       <p className="font-display text-xl font-semibold text-ink-900">
         Your welfare guide
       </p>
-      <p className="mt-1.5 text-[13px] text-ink-400">{user.meta}</p>
+      <p className="mt-1.5 text-[13px] text-ink-400">
+        {guest ? user.meta : identity.meta}
+      </p>
 
       {/* Thin progress path: spiral flourish → line → orange progress dot */}
       <div className="mt-7">

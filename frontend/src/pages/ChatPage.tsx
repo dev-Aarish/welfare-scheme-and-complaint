@@ -12,6 +12,7 @@ import {
   officerQuickReplies,
   quickReplies,
 } from '../data'
+import { useAuth } from '../context/AuthContext'
 import type { Role } from './auth/copy'
 
 interface ChatMessage {
@@ -57,10 +58,26 @@ const officerInitialMessages: ChatMessage[] = [
 
 export function ChatPage({ role }: { role: Role }) {
   const isOfficer = role === 'officer'
+  const { guest, identity } = useAuth()
   const [language, setLanguage] = useState('bn')
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    isOfficer ? officerInitialMessages : citizenInitialMessages,
-  )
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (!isOfficer) {
+      /* Personalise the demo greeting for real (non-guest) users. */
+      if (!guest) {
+        return citizenInitialMessages.map((m) =>
+          m.id === 1 ? { ...m, text: m.text.replace('Asha', identity.firstName) } : m,
+        )
+      }
+      return citizenInitialMessages
+    }
+    if (!guest) {
+      return officerInitialMessages.slice(0, 1).map((m) => ({
+        ...m,
+        text: m.text.replace('Rajiv', identity.firstName),
+      }))
+    }
+    return officerInitialMessages
+  })
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const [listening, setListening] = useState(false)

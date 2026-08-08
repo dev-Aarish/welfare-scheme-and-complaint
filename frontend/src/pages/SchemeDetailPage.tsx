@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ExternalLink, ShieldCheck, FileText, CheckCircle2, Building2, Users, Award, Sparkles, AlertCircle, HelpCircle, UserCheck, ChevronRight, X } from 'lucide-react'
 import { fetchFamilyMembers, matchHouseholdSchemesApi, API_BASE_URL, type BackendScheme } from '../services/api'
 import { catalogSchemes } from '../data'
+import { useAuth } from '../context/AuthContext'
 
 const CATEGORY_DOTS: Record<string, string> = {
   Housing: 'bg-card-lavender',
@@ -116,6 +117,7 @@ function getRequiredDocumentsForScheme(category: string, title: string) {
 }
 
 export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
+  const { guest } = useAuth()
   const [scheme, setScheme] = useState<BackendScheme | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingEligibility, setCheckingEligibility] = useState(false)
@@ -160,26 +162,29 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
           })
         }
 
-        // Load family members for member selection modal
+        // Load family members for member selection modal.
+        // Demo seeds a mock "Self"; real users only get their own family.
         const fetchedFamily = await fetchFamilyMembers()
-        const defaultList: MemberChoice[] = [
-          {
-            id: 'asha-self',
-            name: 'Asha Verma (Self)',
-            relation: 'Self',
-            badge: '32 yrs · Female · Farmer',
-            data: {
-              fullName: 'Asha Verma',
-              age: 32,
-              gender: 'Female',
-              occupation: 'Farmer',
-              isStudent: false,
-              annualIncome: 120000,
-              landAcres: 1.5,
-              state: 'West Bengal',
-            },
-          },
-        ]
+        const defaultList: MemberChoice[] = guest
+          ? [
+              {
+                id: 'asha-self',
+                name: 'Asha Verma (Self)',
+                relation: 'Self',
+                badge: '32 yrs · Female · Farmer',
+                data: {
+                  fullName: 'Asha Verma',
+                  age: 32,
+                  gender: 'Female',
+                  occupation: 'Farmer',
+                  isStudent: false,
+                  annualIncome: 120000,
+                  landAcres: 1.5,
+                  state: 'West Bengal',
+                },
+              },
+            ]
+          : []
 
         if (fetchedFamily && fetchedFamily.length > 0) {
           fetchedFamily.forEach((m) => {

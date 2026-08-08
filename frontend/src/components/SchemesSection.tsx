@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReveal } from '../hooks/useReveal'
+import { useAuth } from '../context/AuthContext'
 import {
   fetchFamilyMembers,
   matchHouseholdSchemesApi,
@@ -39,6 +40,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
   const [numberInputValue, setNumberInputValue] = useState<string>('')
 
   const scope = useReveal<HTMLElement>()
+  const { guest: demo } = useAuth()
 
   // Load family members & fetch initial AI matches
   useEffect(() => {
@@ -46,7 +48,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       const members = await fetchFamilyMembers()
       if (members && members.length > 0) {
         setFamilyMembers(members)
-      } else {
+      } else if (demo) {
         setFamilyMembers([
           {
             id: 'father-1',
@@ -88,17 +90,23 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
             landAcres: 0,
           },
         ])
+      } else {
+        setFamilyMembers([])
       }
 
-      // Initial AI Match fetch for Self (Asha)
-      fetchAiMatches({
-        person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
-        household: { annualIncome: 120000, landAcres: 1.5 },
-        location: { state: 'WEST_BENGAL' },
-      })
+      // Initial AI Match fetch for the signed-in household.
+      // Demo mode seeds Asha's (demo) profile; real users start empty and
+      // trigger a match via the natural-language box or by choosing a member.
+      if (demo) {
+        fetchAiMatches({
+          person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
+          household: { annualIncome: 120000, landAcres: 1.5 },
+          location: { state: 'WEST_BENGAL' },
+        })
+      }
     }
     loadData()
-  }, [])
+  }, [demo])
 
   const fetchAiMatches = async (profileContext?: any, rawPromptText?: string) => {
     setLoadingAi(true)
@@ -114,25 +122,39 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
 
   // Combine Self + Family Members
   const memberChoices = useMemo(() => {
-    const selfProfile: FamilyMemberData = {
-      id: 'self',
-      fullName: 'Asha Verma (Self)',
-      relation: 'Self',
-      dob: '1994-04-10',
-      age: 32,
-      gender: 'Female',
-      occupation: 'Farmer',
-      annualIncome: 120000,
-      isStudent: false,
-      isDisability: false,
-      landAcres: 0,
+    const choices: {
+      id: string
+      label: string
+      icon: typeof User
+      subtitle: string
+      data?: FamilyMemberData
+    }[] = []
+
+    // Real (non-demo) users start without a profile, so a seeded "Self" would
+    // leak demo data — only show it in demo mode.
+    if (demo) {
+      const selfProfile: FamilyMemberData = {
+        id: 'self',
+        fullName: 'Asha Verma (Self)',
+        relation: 'Self',
+        dob: '1994-04-10',
+        age: 32,
+        gender: 'Female',
+        occupation: 'Farmer',
+        annualIncome: 120000,
+        isStudent: false,
+        isDisability: false,
+        landAcres: 0,
+      }
+      choices.push(
+        { id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' },
+        { id: 'self', label: 'Asha Verma (Self)', icon: User, subtitle: '32 yrs · Female · Farmer · Income < ₹2L/yr', data: selfProfile },
+      )
     }
 
-    return [
-      { id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' },
-      { id: 'self', label: 'Asha Verma (Self)', icon: User, subtitle: '32 yrs · Female · Farmer · Income < ₹2L/yr', data: selfProfile },
+    choices.push(
       ...familyMembers.map((m) => {
-        let Icon = User
+        let Icon: typeof User = User
         if (m.isStudent || m.occupation === 'Student') Icon = GraduationCap
         else if (m.occupation === 'Farmer') Icon = Sprout
         else if (m.relation === 'Mother' || m.relation === 'Wife' || m.relation === 'Spouse') Icon = Heart
@@ -145,8 +167,9 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           data: m,
         }
       }),
-    ]
-  }, [familyMembers])
+    )
+    return choices
+  }, [demo, familyMembers])
 
   const activeMember = useMemo(() => {
     return memberChoices.find((m) => m.id === selectedMemberId)
