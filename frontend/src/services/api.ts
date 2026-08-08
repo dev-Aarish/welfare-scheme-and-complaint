@@ -174,7 +174,9 @@ export async function fetchSchemes(params?: {
 export async function fetchFamilyMembers(userId?: string): Promise<FamilyMemberData[]> {
   try {
     const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/family${query}`);
+    const res = await fetch(`${API_BASE_URL}/family${query}`, {
+      headers: await authHeaders(),
+    });
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       return json.data;
@@ -239,8 +241,7 @@ export async function deleteFamilyMember(id: string): Promise<boolean> {
 export async function matchHouseholdSchemesApi(payload: {
   rawPrompt?: string;
   structuredProfile?: any;
-}): Promise<AiMatchResponse | null> {
-  try {
+}): Promise<AiMatchResponse | null> {  try {
     const res = await fetch(`${API_BASE_URL}/ai/match`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -252,6 +253,156 @@ export async function matchHouseholdSchemesApi(payload: {
     }
   } catch (err) {
     console.error('Failed to call AI match schemes API:', err);
+  }
+  return null;
+}
+
+export interface AiChatTurn {
+  role: 'user' | 'bot'
+  text: string
+}
+
+/** Sends the conversation to the multilingual Sahayak AI (backend /api/ai/chat).
+ *  Returns the assistant's reply, or null when AI is unavailable/rate-limited
+ *  (the caller then falls back to canned demo replies). */
+export async function sendChatMessageApi(payload: {
+  messages: AiChatTurn[]
+  role: 'citizen' | 'officer'
+  language: string
+  profile?: Record<string, unknown>
+}): Promise<string | null> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 15000)
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: payload.messages.map((m) => ({ role: m.role, text: m.text })),
+        role: payload.role,
+        language: payload.language,
+        profile: payload.profile,
+      }),
+      signal: controller.signal,
+    })
+    const json = await res.json()
+    if (json.success && typeof json.reply === 'string' && json.reply.trim()) {
+      return json.reply.trim()
+    }
+  } catch (err) {
+    console.error('AI chat request failed:', err)
+  } finally {
+    window.clearTimeout(timeout)
+  }
+  return null
+}
+
+export interface TranscribeResult {
+  transcript: string | null
+  /** false when the server has no Sarvam key or is unreachable — the caller
+   *  then falls back to the browser's built-in speech recognition. */
+  available: boolean
+  /** Human-readable reason from the backend when transcription failed. */
+  error?: string
+}
+
+/** Voice button → text. Sends recorded audio to the backend, which transcribes
+ *  it with the Sarvam AI speech-to-text API in the chat's selected language
+ *  (bn-IN / hi-IN / en-IN). Returns the transcript, or available:false so the
+ *  caller can degrade gracefully. */
+export async function transcribeAudioApi(payload: {
+  audioBase64: string
+  mimeType: string
+  language: string
+}): Promise<TranscribeResult> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 30000)
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Backend route expects the field to be named `audio` (base64 string).
+      body: JSON.stringify({
+        audio: payload.audioBase64,
+        mimeType: payload.mimeType,
+        language: payload.language,
+      }),
+      signal: controller.signal,
+    })
+    const json = await res.json()
+    if (json.success && typeof json.transcript === 'string' && json.transcript.trim()) {
+      return { transcript: json.transcript.trim(), available: true }
+    }
+    if (json.available === false) {
+      return { transcript: null, available: false }
+    }
+    // Server reachable, but transcription came back empty or failed.
+    return {
+      transcript: null,
+      available: true,
+      error: typeof json.error === 'string' ? json.error : undefined,
+    }
+  } catch (err) {
+    console.error('Voice transcription request failed:', err)
+    return { transcript: null, available: false }
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+/** Editable citizen profile fields (the "My profile" page form). */
+export interface HouseholdProfile {
+  fullName?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  age?: number | null;
+  state?: string | null;
+  casteCategory?: string | null;
+  annualIncome?: number | null;
+  occupation?: string | null;
+  incomeSource?: string | null;
+  landAcres?: number | null;
+  village?: string | null;
+  block?: string | null;
+  district?: string | null;
+}
+
+/** Loads the current user's profile + family members from the backend. */
+export async function fetchHouseholdProfile(): Promise<{
+  profile: HouseholdProfile | null;
+  familyMembers: FamilyMemberData[];
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+      headers: await authHeaders(),
+    });
+    const json = await res.json();
+    if (json.success) {
+      return {
+        profile: json.data ?? null,
+        familyMembers: Array.isArray(json.familyMembers) ? json.familyMembers : [],
+      };
+    }
+  } catch (err) {
+    console.error('Failed to fetch household profile:', err);
+  }
+  return { profile: null, familyMembers: [] };
+}
+
+/** Persists the citizen's own profile fields via the backend. */
+export async function saveHouseholdProfile(
+  patch: HouseholdProfile
+): Promise<HouseholdProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'PUT',
+      headers: await authHeaders(),
+      body: JSON.stringify(patch),
+    });
+    const json = await res.json();
+    if (json.success && json.data) return json.data;
+  } catch (err) {
+    console.error('Failed to save household profile:', err);
   }
   return null;
 }

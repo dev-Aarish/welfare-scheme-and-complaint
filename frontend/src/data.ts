@@ -635,10 +635,99 @@ export const quickReplies = [
 ]
 
 export const botReplies = [
-  'You\u2019re eligible for 6 schemes right now! The quickest is Ration Card (NFSA) — about 5 minutes with just your Aadhaar. Shall I open the form for you? 🧾',
+  'You\u2019re eligible for several welfare schemes right now! The quickest is Ration Card (NFSA) — about 5 minutes with just your Aadhaar. Shall I open the form for you? 🧾',
   'Your report SR-1041 (Water supply disruption) is under review — day 1 of 7. If unresolved by day 7, it escalates automatically to the block officer. 🔔',
   'Most schemes need only 2 documents from you: Aadhaar and the income certificate — both are already verified in your profile. ✅',
   'Tip: applications filed through SevaNest are tracked end-to-end. You will get an SMS at every stage, in your chosen language. 📲',
+]
+
+/* ── Question-aware fallback answers ───────────────────────
+   Used only when the AI is offline or rate-limited. Each rule is matched
+   against the user's text (lowercased); the FIRST matching rule wins, so
+   specific rules are listed before generic ones. */
+
+export interface BotFallbackRule {
+  keywords: string[]
+  reply: string
+  schemeId?: string
+}
+
+export const botFallbackRules: BotFallbackRule[] = [
+  {
+    keywords: ['housing', 'house', 'awas', 'pmay', 'ghar'],
+    reply:
+      'Yes! With your rural residence and household income under ₹3L, you likely qualify for PM Awas Yojana (₹2.5L housing grant). Your income certificate is already verified — the form takes about 8 minutes. 👇',
+    schemeId: 'pmay',
+  },
+  {
+    keywords: ['complaint', 'track', 'status', 'sr-', 'report'],
+    reply:
+      'Your report SR-1041 (Water supply disruption, Durganagar) is under review — day 6 of 7. If unresolved by day 7, it escalates automatically to the block officer. You will get an SMS update at every step. 🔔',
+  },
+  {
+    keywords: ['ration', 'nfsa', 'food'],
+    reply:
+      'Open the Ration Card (NFSA) scheme in the catalog and tap "Open application". You just need your Aadhaar and income certificate — both are already verified in your profile. It takes about 5 minutes. 🧾',
+    schemeId: 'nfsa',
+  },
+  {
+    keywords: ['kisan', 'farmer'],
+    reply:
+      'PM-Kisan Samman Nidhi gives ₹6,000/year to landholding farmers, credited directly to your bank account. You can start from the Scheme catalog. 🌾',
+    schemeId: 'pmkisan',
+  },
+  {
+    keywords: ['pension', 'old age', 'senior'],
+    reply:
+      'The Old Age Pension (IGNOAPS) offers ₹1,000/month to seniors aged 60+ in BPL households. Open it in the catalog to check eligibility and apply. 👵',
+    schemeId: 'ignoaps',
+  },
+  {
+    keywords: ['health', 'hospital', 'ayushman', 'medical'],
+    reply:
+      'Ayushman Bharat provides ₹5L of cashless health cover for your family at empanelled hospitals. Rural households under the income threshold are eligible. 🏥',
+    schemeId: 'ayushman',
+  },
+  {
+    keywords: ['kanyashree', 'girl child', 'scholarship', 'education'],
+    reply:
+      'Kanyashree Prakalpa gives an annual scholarship to keep girls in school until 18 — including the ₹25,000 one-time grant at 18. You can apply from the catalog. 🎓',
+    schemeId: 'kanyashree',
+  },
+  {
+    keywords: ['eligible', 'qualify', 'which schemes', 'apply for'],
+    reply:
+      'You\u2019re eligible for several welfare schemes right now! The quickest is Ration Card (NFSA) — about 5 minutes with just your Aadhaar. Shall I open the form for you? 🧾',
+    schemeId: 'nfsa',
+  },
+  {
+    keywords: ['document', 'aadhaar', 'income certificate', 'verify', 'papers'],
+    reply:
+      'Most schemes need only 2 documents from you: Aadhaar and the income certificate — both are already verified in your profile. ✅',
+  },
+]
+
+export const officerBotFallbackRules: BotFallbackRule[] = [
+  {
+    keywords: ['report', 'due', 'deadline'],
+    reply:
+      'You have 7 reports on your desk. SR-1041 (Water supply) is Day 6 of 7 — it escalates to the district desk tomorrow if unresolved. SR-1052 (PM-Kisan payment not credited) is Day 1 of 7. 🔔',
+  },
+  {
+    keywords: ['application', 'review', 'verify'],
+    reply:
+      '21 applications await your verification in Uluberia-I. The oldest is a PM Awas Yojana case filed 11 days ago. 🧾',
+  },
+  {
+    keywords: ['escalation', 'escalate', 'this week'],
+    reply:
+      'This week: 14 cases closed, 93% on time, 0 escalations. SR-1041 (Day 6 of 7) is the closest to the 7-day deadline — resolve it today to keep your block on track. ⏰',
+  },
+  {
+    keywords: ['statistic', 'block', 'performance', 'numbers'],
+    reply:
+      'Uluberia-I covers 47 villages and 31,200 households. This month: 14 cases closed, 93% resolved on time, 0 escalations — the fastest block in Howrah district. 📈',
+  },
 ]
 
 /* ── Scheme catalog ──────────────────────────────────────── */

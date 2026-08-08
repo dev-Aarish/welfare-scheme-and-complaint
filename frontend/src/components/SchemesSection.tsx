@@ -9,10 +9,12 @@ import {
   type AiMatchResponse,
 } from '../services/api'
 import { User, Users, GraduationCap, Sprout, Heart, Sparkles, Send, HelpCircle, X } from 'lucide-react'
+import type { LocalProfile } from '../context/AuthContext'
 
 interface SchemesSectionProps {
   onOpenCatalog?: () => void
   onSelectScheme?: (schemeId: string) => void
+  onMatchesChange?: (count: number) => void
 }
 
 function setDeepProperty(obj: any, path: string, value: any) {
@@ -28,7 +30,45 @@ function setDeepProperty(obj: any, path: string, value: any) {
   return root
 }
 
-export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSectionProps) {
+const hasValue = (v: unknown): boolean =>
+  v !== null && v !== undefined && v !== '' && !(typeof v === 'number' && v <= 0)
+
+function upper(v?: string | null): string {
+  return (v ?? '').trim().toUpperCase()
+}
+
+/** Builds the structured profile context for the backend matcher from the
+ *  citizen's saved household profile (blank fields stay unknown/missing).
+ *  A filled 0 for income/land is real data — a zero-income household. */
+function buildProfileContext(profile: LocalProfile | null): any | null {
+  if (!profile) return null
+  const stateRaw = profile.state
+  const person: any = {
+    age: hasValue(profile.age) ? profile.age : -1,
+    gender: hasValue(profile.gender) ? upper(profile.gender) : 'UNKNOWN',
+    occupation: hasValue(profile.occupation) ? upper(profile.occupation) : 'UNKNOWN',
+    isStudent: profile.occupation === 'Student',
+  }
+  const household: any = {
+    annualIncome: profile.annualIncome != null ? profile.annualIncome : -1,
+    landAcres: profile.landAcres != null ? profile.landAcres : 0,
+  }
+  const location: any = {
+    state: hasValue(stateRaw)
+      ? stateRaw!.trim().toUpperCase().split(/\s+/).join('_')
+      : 'UNKNOWN',
+  }
+  const filled =
+    hasValue(profile.age) ||
+    hasValue(profile.gender) ||
+    hasValue(profile.occupation) ||
+    profile.annualIncome != null ||
+    hasValue(profile.state)
+  if (!filled) return null
+  return { person, household, location }
+}
+
+export function SchemesSection({ onOpenCatalog, onSelectScheme, onMatchesChange }: SchemesSectionProps) {
   const [_query, _setQuery] = useState('')
   const [naturalPrompt, setNaturalPrompt] = useState('')
   const [selectedMemberId, setSelectedMemberId] = useState<string>('all')
@@ -41,90 +81,77 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
   const [showAllMatches, setShowAllMatches] = useState<boolean>(false)
 
   const scope = useReveal<HTMLElement>()
-  const { guest: demo } = useAuth()
+  const { guest: demo, profile: selfProfile } = useAuth()
 
   // Load family members & fetch initial AI matches
-  const loadData = async () => {
-    let currentMembers: FamilyMemberData[] = []
-    const members = await fetchFamilyMembers()
-    if (members && members.length > 0) {
-      currentMembers = members
-      setFamilyMembers(members)
-    } else if (demo) {
-      currentMembers = [
-        {
-          id: 'father-1',
-          fullName: 'Ramesh Mukherjee',
-          relation: 'Father',
-          dob: '1968-05-15',
-          age: 58,
-          gender: 'Male',
-          occupation: 'Farmer',
-          annualIncome: 65000,
-          isStudent: false,
-          isDisability: false,
-          landAcres: 1.5,
-        },
-        {
-          id: 'mother-1',
-          fullName: 'Sunita Mukherjee',
-          relation: 'Mother',
-          dob: '1972-08-20',
-          age: 54,
-          gender: 'Female',
-          occupation: 'Homemaker',
-          annualIncome: 0,
-          isStudent: false,
-          isDisability: false,
-          landAcres: 0,
-        },
-        {
-          id: 'son-1',
-          fullName: 'Sourav Mukherjee',
-          relation: 'Son',
-          dob: '2005-03-12',
-          age: 21,
-          gender: 'Male',
-          occupation: 'Student',
-          annualIncome: 0,
-          isStudent: true,
-          isDisability: false,
-          landAcres: 0,
-        },
-      ]
-      setFamilyMembers(currentMembers)
-    } else {
-      setFamilyMembers([])
-    }
-
-    // Initial AI Match fetch for the household
-    if (currentMembers.length > 0) {
-      fetchAiMatches({
-        members: currentMembers.map((m) => ({
-          fullName: m.fullName,
-          relation: m.relation,
-          age: m.age,
-          gender: m.gender,
-          occupation: m.occupation,
-          isStudent: Boolean(m.isStudent || m.occupation === 'Student'),
-          isDisability: Boolean(m.isDisability),
-          annualIncome: m.annualIncome,
-          landAcres: m.landAcres,
-          state: m.state || 'West Bengal',
-        })),
-        household: { annualIncome: 120000, landAcres: 1.5 },
-        location: { state: 'WEST_BENGAL' },
-      })
-    } else if (demo) {
-      fetchAiMatches({
-        person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
-        household: { annualIncome: 120000, landAcres: 1.5 },
-        location: { state: 'WEST_BENGAL' },
-      })
-    }
-  }
-
   useEffect(() => {
+    async function loadData() {
+      const members = await fetchFamilyMembers()
+      if (members && members.length > 0) {
+        setFamilyMembers(members)
+      } else if (demo) {
+        setFamilyMembers([
+          {
+            id: 'father-1',
+            fullName: 'Ramesh Mukherjee',
+            relation: 'Father',
+            dob: '1968-05-15',
+            age: 58,
+            gender: 'Male',
+            occupation: 'Farmer',
+            annualIncome: 65000,
+            isStudent: false,
+            isDisability: false,
+            landAcres: 1.5,
+          },
+          {
+            id: 'mother-1',
+            fullName: 'Sunita Mukherjee',
+            relation: 'Mother',
+            dob: '1972-08-20',
+            age: 54,
+            gender: 'Female',
+            occupation: 'Homemaker',
+            annualIncome: 0,
+            isStudent: false,
+            isDisability: false,
+            landAcres: 0,
+          },
+          {
+            id: 'son-1',
+            fullName: 'Sourav Mukherjee',
+            relation: 'Son',
+            dob: '2005-03-12',
+            age: 21,
+            gender: 'Male',
+            occupation: 'Student',
+            annualIncome: 0,
+            isStudent: true,
+            isDisability: false,
+            landAcres: 0,
+          },
+        ])
+      } else {
+        setFamilyMembers([])
+      }
+
+      // Initial AI Match fetch for the signed-in household.
+      // Demo mode seeds Asha's (demo) profile; real users match from the
+      // household profile they saved on the "My profile" page.
+      if (demo) {
+        fetchAiMatches({
+          person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
+          household: { annualIncome: 120000, landAcres: 1.5 },
+          location: { state: 'WEST_BENGAL' },
+        })
+      } else {
+        const context = buildProfileContext(selfProfile)
+        if (context) {
+          setSelectedMemberId('self')
+          fetchAiMatches(context)
+        }
+      }
+    }
     loadData()
 
     const handleFamilyUpdated = () => {
@@ -134,7 +161,8 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
     return () => {
       window.removeEventListener('familyMembersUpdated', handleFamilyUpdated)
     }
-  }, [demo])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, selfProfile])
 
   const fetchAiMatches = async (profileContext?: any, rawPromptText?: string) => {
     setLoadingAi(true)
@@ -158,8 +186,10 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       data?: FamilyMemberData
     }[] = []
 
+// Real (non-demo) users match from the household profile they saved on
+    // the "My profile" page — show it as the "Self" chip only when filled.
     if (demo) {
-      const selfProfile: FamilyMemberData = {
+      const demoSelfProfile: FamilyMemberData = {
         id: 'self',
         fullName: 'Asha Verma (Self)',
         relation: 'Self',
@@ -174,10 +204,37 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       }
       choices.push(
         { id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' },
-        { id: 'self', label: 'Asha Verma (Self)', icon: User, subtitle: '32 yrs · Female · Farmer · Income < ₹2L/yr', data: selfProfile },
+        { id: 'self', label: 'Asha Verma (Self)', icon: User, subtitle: '32 yrs · Female · Farmer · Income < ₹2L/yr', data: demoSelfProfile },
       )
-    } else {
-      choices.push({ id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' })
+} else if (buildProfileContext(selfProfile)) {
+      const name = selfProfile?.fullName?.trim() || 'Your profile'
+      const self: FamilyMemberData = {
+        id: 'self',
+        fullName: `${name} (Self)`,
+        relation: 'Self',
+        age: selfProfile?.age || 0,
+        gender: selfProfile?.gender || 'Other',
+        occupation: selfProfile?.occupation || 'Unemployed',
+        annualIncome: selfProfile?.annualIncome || 0,
+        isStudent: selfProfile?.occupation === 'Student',
+        isDisability: false,
+        landAcres: selfProfile?.landAcres || 0,
+      }
+      const bits = [
+        selfProfile?.age ? `${selfProfile.age} yrs` : '',
+        selfProfile?.gender || '',
+        selfProfile?.occupation || '',
+        selfProfile?.annualIncome != null
+          ? `Income ₹${(selfProfile.annualIncome / 100000).toFixed(1)}L/yr`
+          : '',
+      ].filter(Boolean)
+      choices.push({
+        id: 'self',
+        label: `${name} (Self)`,
+        icon: User,
+        subtitle: bits.join(' · ') || 'Your saved profile',
+        data: self,
+      })
     }
 
     choices.push(
@@ -197,7 +254,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       }),
     )
     return choices
-  }, [demo, familyMembers])
+  }, [demo, familyMembers, selfProfile])
 
   const activeMember = useMemo(() => {
     return memberChoices.find((m) => m.id === selectedMemberId)
@@ -283,6 +340,13 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
   const allMatches = aiMatchData?.matches || []
   const matches = showAllMatches ? allMatches : allMatches.slice(0, 11)
 
+  // Report the real matched-scheme count so the hero stat is accurate.
+  // Guarded: only report once real data exists — never report 0 while still
+  // loading or on remount (which would reset a known count back to zero).
+  useEffect(() => {
+    if (aiMatchData) onMatchesChange?.(allMatches.length)
+  }, [allMatches.length, aiMatchData, onMatchesChange])
+
   return (
     <section ref={scope} className="mt-10 lg:mt-12 max-md:mt-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -295,7 +359,11 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           </p>
         </div>
         <span className="shrink-0 self-start rounded-full bg-brand-orange/15 px-3.5 py-1.5 text-xs font-bold text-brand-orange shadow-soft md:self-auto">
-          ⚡ {allMatches.length <= 11 || showAllMatches ? `${allMatches.length} verified matches` : `Showing 11 of ${allMatches.length} verified matches`}
+          {loadingAi
+            ? '⚡ Matching…'
+            : allMatches.length <= 11 || showAllMatches
+              ? `${allMatches.length} verified matches`
+              : `Showing 11 of ${allMatches.length} verified matches`}
         </span>
       </div>
 

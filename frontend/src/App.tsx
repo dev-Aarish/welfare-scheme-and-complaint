@@ -39,6 +39,10 @@ export default function App() {
 function AppShell() {
   const [tab, setTab] = useState<TabId>('overview')
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null)
+  /* Real count arrives from the backend AI matcher (SchemesSection reports
+     it via onMatchesChange). Starts as null = "not known yet" so the hero
+     shows a neutral placeholder instead of a misleading 0 or a fake number. */
+  const [schemesMatched, setSchemesMatched] = useState<number | null>(null)
   const { theme, toggle } = useTheme()
   /* Supabase session when configured; guest role when demo mode. */
   const { loading, session, role, guest, signOut } = useAuth()
@@ -225,7 +229,10 @@ function AppShell() {
               <OfficerPage />
             ) : (
               <>
-                <Hero onReport={() => handleTabSelect('helpline')} />
+                <Hero
+                  onReport={() => handleTabSelect('helpline')}
+                  schemesMatched={schemesMatched}
+                />
                 <SchemesSection
                   onOpenCatalog={() => handleTabSelect('schemes')}
                   onSelectScheme={(id) => {
@@ -233,6 +240,7 @@ function AppShell() {
                     setTab('schemes')
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
+                  onMatchesChange={setSchemesMatched}
                 />
                 <ResolvedSection />
               </>
