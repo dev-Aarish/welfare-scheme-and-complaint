@@ -13,8 +13,8 @@ interface AdminLoginPageProps {
 }
 
 export function AdminLoginPage({ theme, onToggleTheme, onSuccess }: AdminLoginPageProps) {
-  const [email, setEmail] = useState('admin@sevanest.gov.in');
-  const [password, setPassword] = useState('Admin@123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export function AdminLoginPage({ theme, onToggleTheme, onSuccess }: AdminLoginPa
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@sevanest.gov.in"
+                    placeholder="email"
                     className="w-full min-w-0 bg-transparent text-[15px] text-ink-900 outline-none placeholder:text-ink-400"
                   />
                 </div>
@@ -130,7 +130,7 @@ export function AdminLoginPage({ theme, onToggleTheme, onSuccess }: AdminLoginPa
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
+                    placeholder="password"
                     className="w-full min-w-0 bg-transparent text-[15px] text-ink-900 outline-none placeholder:text-ink-400"
                   />
                   <button

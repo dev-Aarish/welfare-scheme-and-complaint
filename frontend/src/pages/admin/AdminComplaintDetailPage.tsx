@@ -20,11 +20,13 @@ import {
   History,
   Send,
   Lock,
-  Check
+  Check,
+  LogOut
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
+import { AdminDemoButton } from '../../components/AdminDemoButton';
 import type { Theme } from '../../hooks/useTheme';
 import {
   fetchAdminComplaintById,
@@ -70,6 +72,7 @@ export function AdminComplaintDetailPage({
   const [officers, setOfficers] = useState<OfficerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [demo, setDemo] = useState(false);
 
   // Workflow control state
   const [selectedStatus, setSelectedStatus] = useState<string>('OPEN');
@@ -88,13 +91,13 @@ export function AdminComplaintDetailPage({
   const [postingRemark, setPostingRemark] = useState(false);
 
   // Load complaint & workflow metadata
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (useDemo = demo) => {
     setLoading(true);
     setError(null);
 
     const [compRes, metaRes] = await Promise.all([
-      fetchAdminComplaintById(complaintId),
-      fetchWorkflowMetaDataApi(),
+      fetchAdminComplaintById(complaintId, useDemo),
+      fetchWorkflowMetaDataApi(useDemo),
     ]);
 
     if (compRes.success && compRes.complaint) {
@@ -117,13 +120,17 @@ export function AdminComplaintDetailPage({
     }
 
     setLoading(false);
-  }, [complaintId, onLogout]);
+  }, [complaintId, demo, onLogout]);
 
   useEffect(() => {
     if (complaintId) {
       loadData();
     }
   }, [complaintId, loadData]);
+
+  const toggleDemo = () => {
+    setDemo((d) => !d);
+  };
 
   // Handle Status Update Submit
   const handleStatusUpdate = async (e: React.FormEvent) => {
@@ -317,6 +324,19 @@ export function AdminComplaintDetailPage({
             </span>
 
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+
+            <button
+              type="button"
+              onClick={() => {
+                clearAdminAuth();
+                onLogout();
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium text-ink-400 transition-colors hover:border-brand-orange hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
+              title="Sign Out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </div>
       </header>
@@ -822,6 +842,8 @@ export function AdminComplaintDetailPage({
           </div>
         )}
       </main>
+
+      <AdminDemoButton demo={demo} onToggle={toggleDemo} />
     </div>
   );
 }

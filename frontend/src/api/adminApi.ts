@@ -111,7 +111,7 @@ export async function adminLoginApi(email: string, password: string): Promise<{
 /**
  * Fetch Admin Dashboard Stats API call
  */
-export async function fetchAdminDashboardStats(): Promise<{
+export async function fetchAdminDashboardStats(demo = false): Promise<{
   success: boolean;
   data?: DashboardResponse;
   status?: number;
@@ -123,7 +123,7 @@ export async function fetchAdminDashboardStats(): Promise<{
       return { success: false, status: 401, error: 'No admin token found' };
     }
 
-    const res = await fetch(`${API_BASE_URL}/admin/dashboard`, {
+    const res = await fetch(`${API_BASE_URL}/admin/dashboard${demo ? '?demo=1' : ''}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -238,6 +238,7 @@ export interface ComplaintQueryParams {
   escalated?: string;
   page?: number;
   limit?: number;
+  demo?: boolean;
 }
 
 /**
@@ -264,6 +265,7 @@ export async function fetchAdminComplaints(params: ComplaintQueryParams = {}): P
     if (params.escalated && params.escalated !== 'ALL') query.append('escalated', params.escalated);
     if (params.page) query.append('page', String(params.page));
     if (params.limit) query.append('limit', String(params.limit));
+    if (params.demo) query.append('demo', '1');
 
     const res = await fetch(`${API_BASE_URL}/admin/complaints?${query.toString()}`, {
       method: 'GET',
@@ -300,7 +302,7 @@ export async function fetchAdminComplaints(params: ComplaintQueryParams = {}): P
 /**
  * Fetch Single Admin Complaint Details API call
  */
-export async function fetchAdminComplaintById(id: string): Promise<{
+export async function fetchAdminComplaintById(id: string, demo = false): Promise<{
   success: boolean;
   complaint?: ComplaintItem;
   status?: number;
@@ -312,7 +314,7 @@ export async function fetchAdminComplaintById(id: string): Promise<{
       return { success: false, status: 401, error: 'No admin token found' };
     }
 
-    const res = await fetch(`${API_BASE_URL}/admin/complaints/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${API_BASE_URL}/admin/complaints/${encodeURIComponent(id)}${demo ? '?demo=1' : ''}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -502,7 +504,7 @@ export async function addComplaintRemarkApi(
 /**
  * Fetch Workflow Metadata (Departments & Officers) API call
  */
-export async function fetchWorkflowMetaDataApi(): Promise<{
+export async function fetchWorkflowMetaDataApi(demo = false): Promise<{
   success: boolean;
   departments?: DepartmentItem[];
   officers?: OfficerItem[];
@@ -515,7 +517,7 @@ export async function fetchWorkflowMetaDataApi(): Promise<{
       return { success: false, status: 401, error: 'No admin token found' };
     }
 
-    const res = await fetch(`${API_BASE_URL}/admin/workflow/meta`, {
+    const res = await fetch(`${API_BASE_URL}/admin/workflow/meta${demo ? '?demo=1' : ''}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
