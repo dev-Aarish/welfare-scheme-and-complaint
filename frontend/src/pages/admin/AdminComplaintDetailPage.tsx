@@ -20,7 +20,8 @@ import {
   History,
   Send,
   Lock,
-  Check
+  Check,
+  LogOut
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -323,6 +324,19 @@ export function AdminComplaintDetailPage({
             </span>
 
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+
+            <button
+              type="button"
+              onClick={() => {
+                clearAdminAuth();
+                onLogout();
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium text-ink-400 transition-colors hover:border-brand-orange hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
+              title="Sign Out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </div>
       </header>

@@ -290,7 +290,10 @@ export function AdminComplaintsPage({
 
             <button
               type="button"
-              onClick={onLogout}
+              onClick={() => {
+                clearAdminAuth();
+                onLogout();
+              }}
               className="flex items-center gap-1.5 rounded-xl border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium text-ink-400 transition-colors hover:border-brand-orange hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
               title="Sign Out"
             >
