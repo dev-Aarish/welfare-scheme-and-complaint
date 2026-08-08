@@ -59,7 +59,7 @@ const INITIAL_FORM: FamilyMemberData = {
   notes: '',
 }
 
-export function FamilyMembersCard() {
+export function FamilyMembersCard({ sampleFallback = false }: { sampleFallback?: boolean }) {
   const [family, setFamily] = useState<FamilyMemberData[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [showModal, setShowModal] = useState<boolean>(false)
@@ -72,8 +72,8 @@ export function FamilyMembersCard() {
     const members = await fetchFamilyMembers()
     if (members && members.length > 0) {
       setFamily(members)
-    } else {
-      // Fallback initial sample data if backend empty
+    } else if (sampleFallback) {
+      // Sample preview data for the demo/guest view when the backend is empty.
       setFamily([
         {
           id: 'sample-1',
@@ -102,6 +102,9 @@ export function FamilyMembersCard() {
           landAcres: 0,
         },
       ])
+    } else {
+      // Real user with no saved family members — show the empty state.
+      setFamily([])
     }
     setLoading(false)
   }
