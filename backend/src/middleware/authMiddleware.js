@@ -118,13 +118,14 @@ export async function requireAuth(req, res, next) {
         (await prisma.user.findUnique({ where: { email: userClaims.email } })));
 
     if (localUser) {
+      // Only sync identity links — phone and fullName are citizen-editable
+      // via the profile page, so a zero/empty Supabase claim must never
+      // overwrite what the citizen typed.
       localUser = await prisma.user.update({
         where: { id: localUser.id },
         data: {
           supabaseId: userClaims.id,
           email: userClaims.email ?? undefined,
-          phone: userClaims.phone ?? undefined,
-          fullName,
           role,
         },
       });

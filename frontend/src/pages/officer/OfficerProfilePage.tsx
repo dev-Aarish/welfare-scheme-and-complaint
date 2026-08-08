@@ -6,7 +6,6 @@ import { useReveal } from '../../hooks/useReveal'
 
 export function OfficerProfilePage() {
   const scope = useReveal<HTMLDivElement>()
-  const { identity } = useAuth()
 
   return (
     <div>
