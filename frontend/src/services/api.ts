@@ -130,7 +130,9 @@ export async function fetchSchemes(params?: {
 export async function fetchFamilyMembers(userId?: string): Promise<FamilyMemberData[]> {
   try {
     const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-    const res = await fetch(`${API_BASE_URL}/family${query}`);
+    const res = await fetch(`${API_BASE_URL}/family${query}`, {
+      headers: await authHeaders(),
+    });
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       return json.data;
@@ -208,6 +210,63 @@ export async function matchHouseholdSchemesApi(payload: {
     }
   } catch (err) {
     console.error('Failed to call AI match schemes API:', err);
+  }
+  return null;
+}
+
+/** Editable citizen profile fields (the "My profile" page form). */
+export interface HouseholdProfile {
+  fullName?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  age?: number | null;
+  state?: string | null;
+  casteCategory?: string | null;
+  annualIncome?: number | null;
+  occupation?: string | null;
+  incomeSource?: string | null;
+  landAcres?: number | null;
+  village?: string | null;
+  block?: string | null;
+  district?: string | null;
+}
+
+/** Loads the current user's profile + family members from the backend. */
+export async function fetchHouseholdProfile(): Promise<{
+  profile: HouseholdProfile | null;
+  familyMembers: FamilyMemberData[];
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+      headers: await authHeaders(),
+    });
+    const json = await res.json();
+    if (json.success) {
+      return {
+        profile: json.data ?? null,
+        familyMembers: Array.isArray(json.familyMembers) ? json.familyMembers : [],
+      };
+    }
+  } catch (err) {
+    console.error('Failed to fetch household profile:', err);
+  }
+  return { profile: null, familyMembers: [] };
+}
+
+/** Persists the citizen's own profile fields via the backend. */
+export async function saveHouseholdProfile(
+  patch: HouseholdProfile
+): Promise<HouseholdProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'PUT',
+      headers: await authHeaders(),
+      body: JSON.stringify(patch),
+    });
+    const json = await res.json();
+    if (json.success && json.data) return json.data;
+  } catch (err) {
+    console.error('Failed to save household profile:', err);
   }
   return null;
 }

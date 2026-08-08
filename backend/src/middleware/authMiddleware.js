@@ -62,7 +62,7 @@ export async function requireAuth(req, res, next) {
     // guest citizen so scheme browsing keeps working during development.
     req.user = {
       supabaseId: null,
-      role: 'citizen',
+      role: 'CITIZEN',
       localUser: null,
     };
     return next();
@@ -98,7 +98,7 @@ export async function requireAuth(req, res, next) {
     });
   }
 
-  const role = userClaims.app_metadata?.role || userClaims.user_metadata?.role || 'citizen';
+  const role = (userClaims.app_metadata?.role || userClaims.user_metadata?.role || 'citizen').toUpperCase();
 
   const fullName =
     userClaims.user_metadata?.fullName ||
@@ -118,13 +118,14 @@ export async function requireAuth(req, res, next) {
         (await prisma.user.findUnique({ where: { email: userClaims.email } })));
 
     if (localUser) {
+      // Only sync identity links — phone and fullName are citizen-editable
+      // via the profile page, so a zero/empty Supabase claim must never
+      // overwrite what the citizen typed.
       localUser = await prisma.user.update({
         where: { id: localUser.id },
         data: {
           supabaseId: userClaims.id,
           email: userClaims.email ?? undefined,
-          phone: userClaims.phone ?? undefined,
-          fullName,
           role,
         },
       });
@@ -159,7 +160,7 @@ export async function requireAuth(req, res, next) {
 /** Like requireAuth, but only lets officers (and admins) through. */
 export async function requireOfficer(req, res, next) {
   await requireAuth(req, res, () => {
-    if (req.user?.role !== 'officer' && req.user?.role !== 'admin') {
+    if (req.user?.role !== 'OFFICER' && req.user?.role !== 'ADMIN') {
       return res.status(403).json({
         success: false,
         error: 'Forbidden: officer role required.',

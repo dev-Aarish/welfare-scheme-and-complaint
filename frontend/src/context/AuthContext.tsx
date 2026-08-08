@@ -85,9 +85,17 @@ export interface LocalProfile {
   email?: string | null
   fullName: string
   phone?: string | null
-  state?: string
-  casteCategory?: string
-  annualIncome?: number
+  gender?: string | null
+  age?: number | null
+  state?: string | null
+  casteCategory?: string | null
+  annualIncome?: number | null
+  occupation?: string | null
+  incomeSource?: string | null
+  landAcres?: number | null
+  village?: string | null
+  block?: string | null
+  district?: string | null
 }
 
 interface AuthContextValue {
@@ -153,10 +161,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /* Keep the local profile in sync whenever the Supabase session changes. */
   useEffect(() => {
-    if (!supabase) return
+    const client = supabase
+    if (!client) return
 
     let alive = true
-    supabase.auth.getSession().then(async ({ data }) => {
+    client.auth.getSession().then(async ({ data }) => {
       if (!alive) return
 
       // A stored session may be stale (e.g. the Supabase user was deleted or
@@ -164,10 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // sending an invalid Bearer token (which just 401-spams the backend).
       let session = data.session
       if (session) {
-        const { error } = await supabase.auth.getUser(session.access_token)
+        const { error } = await client.auth.getUser(session.access_token)
         if (error) {
           console.warn('Stored session is invalid, signing out:', error.message)
-          await supabase.auth.signOut()
+          await client.auth.signOut()
           session = null
         }
       }
@@ -181,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
+    const { data: sub } = client.auth.onAuthStateChange(async (event, next) => {
       setSession(next)
       setUser(next?.user ?? null)
       setLoading(false)

@@ -68,9 +68,17 @@ model User {
   phone              String?
   passwordHash       String?                  @map("password_hash")
   role               Role                     @default(CITIZEN)
-  state              String                   @default("WEST_BENGAL")
-  casteCategory      String                   @default("General") @map("caste_category")
-  annualIncome       Float                    @default(120000) @map("annual_income")
+  gender             String?
+  age                Int?
+  state              String?
+  casteCategory      String?                  @map("caste_category")
+  annualIncome       Float?                   @map("annual_income")
+  occupation         String?
+  incomeSource       String?                  @map("income_source")
+  landAcres          Float?                   @map("land_acres")
+  village            String?
+  block              String?
+  district           String?
 
   familyMembers      FamilyMember[]
   complaints         Complaint[]              @relation("CitizenComplaints")

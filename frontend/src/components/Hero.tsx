@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { GuideCard } from './GuideCard'
-import { complaints, stats } from '../data'
+import { complaints } from '../data'
 import { gsap, useGSAP } from '../lib/animations'
 import { useAuth } from '../context/AuthContext'
 
@@ -16,9 +16,21 @@ const STATUS_STRIP = [
   { label: 'Resolved', status: 'Resolved' as const, dot: 'bg-brand-mint' },
 ]
 
-export function Hero({ onReport }: { onReport: () => void }) {
+export function Hero({
+  onReport,
+  schemesMatched,
+}: {
+  onReport: () => void
+  schemesMatched: number
+}) {
   const scope = useRef<HTMLElement>(null)
   const { identity } = useAuth()
+
+  const stats = [
+    { value: String(schemesMatched), label: 'schemes matched' },
+    { value: '4', label: 'reports tracked' },
+    { value: '4.2 days', label: 'avg. resolution' },
+  ]
 
   useGSAP(
     () => {
