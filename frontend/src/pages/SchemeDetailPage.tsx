@@ -277,28 +277,28 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
         // Gender Check
         if (text.includes('girl') || text.includes('women') || text.includes('mother') || text.includes('widow') || text.includes('kanyashree') || text.includes('bhandar') || text.includes('sukanya')) {
           if (mData.gender.toUpperCase() !== 'FEMALE') {
-            failedReasons.push(`❌ Restricted to Female beneficiaries (${member.name} is ${mData.gender})`)
+            failedReasons.push(`Restricted to Female beneficiaries (${member.name} is ${mData.gender})`)
           }
         }
 
         // Student Check
         if (text.includes('scholarship') || text.includes('student') || text.includes('post-matric') || scheme.category === 'Education') {
           if (!mData.isStudent && mData.occupation !== 'Student') {
-            failedReasons.push(`❌ Restricted to Enrolled Students / Scholars (${member.name} is ${mData.occupation})`)
+            failedReasons.push(`Restricted to Enrolled Students / Scholars (${member.name} is ${mData.occupation})`)
           }
         }
 
         // Senior Citizen Age Check (60+)
         if (text.includes('old age') || text.includes('senior citizen') || text.includes('pension') || text.includes('vayo')) {
           if (mData.age < 60) {
-            failedReasons.push(`❌ Minimum age requirement is 60 years (${member.name} is ${mData.age} years old)`)
+            failedReasons.push(`Minimum age requirement is 60 years (${member.name} is ${mData.age} years old)`)
           }
         }
 
         // Minor Child Check (<18)
         if (text.includes('minor') || text.includes('child under 18') || text.includes('schoolgirl')) {
           if (mData.age >= 18) {
-            failedReasons.push(`❌ Restricted to Minors under 18 years (${member.name} is ${mData.age} years old)`)
+            failedReasons.push(`Restricted to Minors under 18 years (${member.name} is ${mData.age} years old)`)
           }
         }
 
@@ -311,14 +311,14 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
           if (isSchemeTargetingState) {
             const userBelongsToState = userStateNormalized.includes(st.key) || userStateNormalized.includes(st.name.toLowerCase())
             if (!userBelongsToState) {
-              failedReasons.push(`❌ State Jurisdiction Mismatch: Restricted to ${st.name} residents (${member.name} state: ${userStateRaw})`)
+              failedReasons.push(`State Jurisdiction Mismatch: Restricted to ${st.name} residents (${member.name} state: ${userStateRaw})`)
               break
             }
           }
         }
 
         if (failedReasons.length === 0) {
-          failedReasons.push(`❌ Demographic profile for ${member.name} does not meet scheme eligibility thresholds.`)
+          failedReasons.push(`Demographic profile for ${member.name} does not meet scheme eligibility thresholds.`)
         }
 
         setEligibilityResult({
@@ -434,7 +434,7 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
               className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-[14px] bg-brand-orange px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-soft transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#c94b39] disabled:opacity-50"
             >
               <Sparkles className="h-4 w-4" />
-              {checkingEligibility ? 'Evaluating Rules...' : 'Check Eligibility Match ⚡'}
+              {checkingEligibility ? 'Evaluating Rules...' : 'Check Eligibility Match'}
             </button>
 
             <a
@@ -524,10 +524,10 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
             <div className="w-full">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle/40 pb-2.5">
                 <h3 className="font-display text-lg font-bold text-ink-900">
-                  {eligibilityResult.status === 'ELIGIBLE' && '🟢 100% ELIGIBLE — Rule AST Verified'}
-                  {eligibilityResult.status === 'POTENTIALLY_ELIGIBLE' && '🟡 POTENTIALLY ELIGIBLE'}
-                  {eligibilityResult.status === 'MORE_INFO_REQUIRED' && '🔵 MORE INFORMATION REQUIRED'}
-                  {eligibilityResult.status === 'INELIGIBLE' && '🔴 NOT ELIGIBLE FOR THIS SCHEME'}
+                  {eligibilityResult.status === 'ELIGIBLE' && '100% ELIGIBLE — Rule AST Verified'}
+                  {eligibilityResult.status === 'POTENTIALLY_ELIGIBLE' && 'POTENTIALLY ELIGIBLE'}
+                  {eligibilityResult.status === 'MORE_INFO_REQUIRED' && 'MORE INFORMATION REQUIRED'}
+                  {eligibilityResult.status === 'INELIGIBLE' && 'NOT ELIGIBLE FOR THIS SCHEME'}
                 </h3>
 
                 <span className="rounded-full bg-surface px-3 py-1 text-xs font-bold text-ink-700 border border-border-subtle">
@@ -542,7 +542,7 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
                   <ul className="space-y-1 text-xs text-ink-900 font-medium">
                     {eligibilityResult.matchedRules.map((rule: string, i: number) => (
                       <li key={i} className="flex items-center gap-1.5">
-                        <span className="text-[#3d7d6b] font-bold">✓</span> {rule}
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-[#3d7d6b]" /> {rule}
                       </li>
                     ))}
                   </ul>
@@ -556,7 +556,7 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
                   <ul className="space-y-1.5 text-xs text-red-700 font-semibold bg-red-500/10 p-3 rounded-xl">
                     {eligibilityResult.failedRules.map((reason: string, i: number) => (
                       <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-red-600 font-bold shrink-0">❌</span>
+                        <X className="h-4 w-4 shrink-0 text-red-600 font-bold" />
                         <span>{reason}</span>
                       </li>
                     ))}
