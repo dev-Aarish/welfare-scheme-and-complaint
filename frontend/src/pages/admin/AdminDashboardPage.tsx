@@ -13,6 +13,7 @@ import {
 import { Logo } from '../../components/Logo';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
+import { AdminDemoButton } from '../../components/AdminDemoButton';
 import type { Theme } from '../../hooks/useTheme';
 import {
   clearAdminAuth,
@@ -40,14 +41,15 @@ export function AdminDashboardPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [demo, setDemo] = useState(false);
 
-  const loadDashboard = async (isManualRefresh = false) => {
+  const loadDashboard = async (isManualRefresh = false, useDemo = demo) => {
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
 
     setError(null);
 
-    const res = await fetchAdminDashboardStats();
+    const res = await fetchAdminDashboardStats(useDemo);
 
     setLoading(false);
     setRefreshing(false);
@@ -69,6 +71,12 @@ export function AdminDashboardPage({
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const toggleDemo = () => {
+    const next = !demo;
+    setDemo(next);
+    loadDashboard(false, next);
+  };
 
   const handleLogoutClick = () => {
     clearAdminAuth();
@@ -334,6 +342,8 @@ export function AdminDashboardPage({
           </div>
         </div>
       </main>
+
+      <AdminDemoButton demo={demo} onToggle={toggleDemo} />
     </div>
   );
 }

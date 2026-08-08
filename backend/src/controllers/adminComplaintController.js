@@ -307,6 +307,60 @@ export const SAMPLE_COMPLAINTS = [
 
 export const SAMPLE_COMPLAINTS_REF = SAMPLE_COMPLAINTS;
 
+/**
+ * Helper to infer category if missing in database record
+ */
+function filterSampleComplaints({
+  search = '',
+  statusFilter = '',
+  categoryFilter = '',
+  priorityFilter = '',
+  escalatedFilter = '',
+  dateFilter = '',
+  page = 1,
+  limit = 20,
+}) {
+  let filtered = [...SAMPLE_COMPLAINTS];
+
+  if (statusFilter && statusFilter !== 'ALL') {
+    filtered = filtered.filter(c => c.status === statusFilter);
+  }
+
+  if (categoryFilter && categoryFilter !== 'ALL') {
+    filtered = filtered.filter(c => c.category === categoryFilter);
+  }
+
+  if (priorityFilter && priorityFilter !== 'ALL') {
+    filtered = filtered.filter(c => c.priority === priorityFilter);
+  }
+
+  if (escalatedFilter === 'true') {
+    filtered = filtered.filter(c => c.isEscalated === true);
+  } else if (escalatedFilter === 'false') {
+    filtered = filtered.filter(c => c.isEscalated === false);
+  }
+
+  if (search) {
+    filtered = filtered.filter(c =>
+      c.ref.toLowerCase().includes(search) ||
+      c.title.toLowerCase().includes(search) ||
+      c.description.toLowerCase().includes(search) ||
+      c.location.toLowerCase().includes(search) ||
+      c.citizen.name.toLowerCase().includes(search) ||
+      c.citizen.email.toLowerCase().includes(search)
+    );
+  }
+
+  if (dateFilter) {
+    filtered = filtered.filter(c => c.createdAt.startsWith(dateFilter));
+  }
+
+  return {
+    complaints: filtered.slice((page - 1) * limit, page * limit),
+    total: filtered.length,
+  };
+}
+
 /** Helper to infer category if missing in database record */
 function inferCategory(title = '', desc = '') {
   const text = `${title} ${desc}`.toLowerCase();
@@ -404,6 +458,32 @@ export async function getComplaints(req, res) {
     let complaints = [];
     let total = 0;
 
+    if (req.query.demo === '1') {
+      const sampleResult = filterSampleComplaints({
+        search,
+        statusFilter,
+        categoryFilter,
+        priorityFilter,
+        escalatedFilter,
+        dateFilter,
+        page,
+        limit,
+      });
+      complaints = sampleResult.complaints;
+      total = sampleResult.total;
+
+      const sampleTotalPages = Math.ceil(total / limit) || 1;
+      return res.status(200).json({
+        complaints,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: sampleTotalPages,
+        },
+      });
+    }
+
     try {
       const whereClause = {};
 
@@ -468,44 +548,19 @@ export async function getComplaints(req, res) {
       }
     } catch (dbError) {
       console.warn('⚠️ Database query warning (using fallback sample complaints):', dbError.message);
-      
-      let filtered = [...SAMPLE_COMPLAINTS];
 
-      if (statusFilter && statusFilter !== 'ALL') {
-        filtered = filtered.filter(c => c.status === statusFilter);
-      }
-
-      if (categoryFilter && categoryFilter !== 'ALL') {
-        filtered = filtered.filter(c => c.category === categoryFilter);
-      }
-
-      if (priorityFilter && priorityFilter !== 'ALL') {
-        filtered = filtered.filter(c => c.priority === priorityFilter);
-      }
-
-      if (escalatedFilter === 'true') {
-        filtered = filtered.filter(c => c.isEscalated === true);
-      } else if (escalatedFilter === 'false') {
-        filtered = filtered.filter(c => c.isEscalated === false);
-      }
-
-      if (search) {
-        filtered = filtered.filter(c => 
-          c.ref.toLowerCase().includes(search) ||
-          c.title.toLowerCase().includes(search) ||
-          c.description.toLowerCase().includes(search) ||
-          c.location.toLowerCase().includes(search) ||
-          c.citizen.name.toLowerCase().includes(search) ||
-          c.citizen.email.toLowerCase().includes(search)
-        );
-      }
-
-      if (dateFilter) {
-        filtered = filtered.filter(c => c.createdAt.startsWith(dateFilter));
-      }
-
-      total = filtered.length;
-      complaints = filtered.slice((page - 1) * limit, page * limit);
+      const sampleResult = filterSampleComplaints({
+        search,
+        statusFilter,
+        categoryFilter,
+        priorityFilter,
+        escalatedFilter,
+        dateFilter,
+        page,
+        limit,
+      });
+      complaints = sampleResult.complaints;
+      total = sampleResult.total;
     }
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -543,6 +598,24 @@ export async function getComplaintById(req, res) {
     }
 
     let complaint = null;
+
+    if (req.query.demo === '1') {
+      const foundSample = SAMPLE_COMPLAINTS.find(c => c.id === id || c.ref.toLowerCase() === id.toLowerCase());
+      if (foundSample) {
+        complaint = foundSample;
+      }
+
+      if (!complaint) {
+        return res.status(404).json({
+          success: false,
+          error: `Complaint with ID or Reference '${id}' was not found in demo data.`,
+        });
+      }
+
+      return res.status(200).json({
+        complaint,
+      });
+    }
 
     try {
       const dbComplaint = await prisma.complaint.findFirst({
@@ -904,6 +977,14 @@ export async function getWorkflowMeta(req, res) {
   try {
     let departments = [];
     let officers = [];
+
+    if (req.query.demo === '1') {
+      return res.status(200).json({
+        departments: SAMPLE_DEPARTMENTS,
+        officers: SAMPLE_OFFICERS,
+        escalationThresholdDays: getEscalationDays(),
+      });
+    }
 
     try {
       const [dbDepts, dbOfficers] = await Promise.all([
