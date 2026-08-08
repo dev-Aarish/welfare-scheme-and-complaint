@@ -21,13 +21,17 @@ export function Hero({
   schemesMatched,
 }: {
   onReport: () => void
-  schemesMatched: number
+  /** null = count not known yet (still matching) — rendered as a placeholder. */
+  schemesMatched: number | null
 }) {
   const scope = useRef<HTMLElement>(null)
   const { identity } = useAuth()
 
   const stats = [
-    { value: String(schemesMatched), label: 'schemes matched' },
+    {
+      value: schemesMatched == null ? '–' : String(schemesMatched),
+      label: 'schemes matched',
+    },
     { value: '4', label: 'reports tracked' },
     { value: '4.2 days', label: 'avg. resolution' },
   ]

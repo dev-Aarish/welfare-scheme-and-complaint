@@ -197,8 +197,7 @@ export async function deleteFamilyMember(id: string): Promise<boolean> {
 export async function matchHouseholdSchemesApi(payload: {
   rawPrompt?: string;
   structuredProfile?: any;
-}): Promise<AiMatchResponse | null> {
-  try {
+}): Promise<AiMatchResponse | null> {  try {
     const res = await fetch(`${API_BASE_URL}/ai/match`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,6 +211,46 @@ export async function matchHouseholdSchemesApi(payload: {
     console.error('Failed to call AI match schemes API:', err);
   }
   return null;
+}
+
+export interface AiChatTurn {
+  role: 'user' | 'bot'
+  text: string
+}
+
+/** Sends the conversation to the multilingual Sahayak AI (backend /api/ai/chat).
+ *  Returns the assistant's reply, or null when AI is unavailable/rate-limited
+ *  (the caller then falls back to canned demo replies). */
+export async function sendChatMessageApi(payload: {
+  messages: AiChatTurn[]
+  role: 'citizen' | 'officer'
+  language: string
+  profile?: Record<string, unknown>
+}): Promise<string | null> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 15000)
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: payload.messages.map((m) => ({ role: m.role, text: m.text })),
+        role: payload.role,
+        language: payload.language,
+        profile: payload.profile,
+      }),
+      signal: controller.signal,
+    })
+    const json = await res.json()
+    if (json.success && typeof json.reply === 'string' && json.reply.trim()) {
+      return json.reply.trim()
+    }
+  } catch (err) {
+    console.error('AI chat request failed:', err)
+  } finally {
+    window.clearTimeout(timeout)
+  }
+  return null
 }
 
 /** Editable citizen profile fields (the "My profile" page form). */
