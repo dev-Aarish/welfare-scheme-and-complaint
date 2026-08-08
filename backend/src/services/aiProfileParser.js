@@ -37,6 +37,7 @@ async function parseWithGoogleGenAiSdk(promptText, apiKey) {
   const payload = {
     config: {
       responseMimeType: 'application/json',
+      temperature: 0,
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -74,7 +75,15 @@ async function parseWithGoogleGenAiSdk(promptText, apiKey) {
     },
     contents: `
       Extract structured profile parameters from citizen prompt.
-      If a parameter is not explicitly mentioned, assign null. Do NOT guess missing fields.
+      If a parameter is not explicitly mentioned, output null for the field.
+      Do NOT guess or infer values that are not stated (including age, income and state).
+      Use ONLY these canonical enum values:
+      - gender: "FEMALE" | "MALE" | "TRANSGENDER"
+      - occupation: "FARMER" | "STUDENT" | "DAILY_WAGE" | "SELF_EMPLOYED" | "HOMEMAKER" | "GOVERNMENT_EMPLOYEE" | "RETIRED" | "PRIVATE_EMPLOYEE" | "UNEMPLOYED"
+      - maritalStatus: "MARRIED" | "SINGLE" | "WIDOW" | "DIVORCED" | "SEPARATED"
+      - socialCategory: "GENERAL" | "SC" | "ST" | "OBC" | "EWS" | "MINORITY" | "OTHER"
+      - state: full state name (e.g. "WEST_BENGAL", "KARNATAKA", "BIHAR")
+      Output null instead of an enum when the information was not provided.
 
       USER PROMPT: "${promptText}"
     `,

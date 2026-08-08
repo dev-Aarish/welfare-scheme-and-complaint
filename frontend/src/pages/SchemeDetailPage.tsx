@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ExternalLink, ShieldCheck, FileText, CheckCircle2, Building2, Users, Award, Sparkles, AlertCircle, HelpCircle, UserCheck, ChevronRight, X } from 'lucide-react'
-import { fetchFamilyMembers, matchHouseholdSchemesApi, type BackendScheme } from '../services/api'
+import { fetchFamilyMembers, matchHouseholdSchemesApi, API_BASE_URL, type BackendScheme } from '../services/api'
 import { catalogSchemes } from '../data'
 
 const CATEGORY_DOTS: Record<string, string> = {
@@ -132,7 +132,7 @@ export function SchemeDetailPage({ schemeId, onBack }: SchemeDetailPageProps) {
     async function loadData() {
       setLoading(true)
       try {
-        const res = await fetch(`http://localhost:5000/api/schemes/${schemeId}`)
+        const res = await fetch(`${API_BASE_URL}/schemes/${schemeId}`)
         const json = await res.json()
         if (isSubscribed && json.success && json.data) {
           setScheme(json.data)
