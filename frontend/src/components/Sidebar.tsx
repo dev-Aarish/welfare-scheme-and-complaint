@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LogOut } from 'lucide-react'
+import { ChevronDown, ChevronRight, LogOut, ShieldCheck } from 'lucide-react'
 import { tabs, user, officer, type Tab, type TabId } from '../data'
 import type { Role } from '../pages/auth/copy'
 import type { Theme } from '../hooks/useTheme'
@@ -68,12 +68,24 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-4">
+      <div className="mt-auto flex flex-col gap-2">
         <PromoCard />
+        <button
+          type="button"
+          onClick={() => {
+            window.history.pushState(null, '', '/admin/login')
+            window.dispatchEvent(new Event('popstate'))
+          }}
+          title="Admin Login Portal"
+          className="flex w-full items-center gap-2.5 rounded-[14px] px-4 py-2 text-left text-[13px] font-semibold text-ink-700 transition-colors duration-150 hover:bg-canvas hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
+        >
+          <ShieldCheck className="h-4 w-4 shrink-0 text-brand-orange" strokeWidth={1.75} />
+          Admin Portal
+        </button>
         <button
           onClick={onSignOut}
           title="Sign out (demo)"
-          className="flex w-full items-center gap-2.5 rounded-[14px] px-4 py-2.5 text-left text-[13px] font-medium text-ink-400 transition-colors duration-150 hover:bg-canvas hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
+          className="flex w-full items-center gap-2.5 rounded-[14px] px-4 py-2 text-left text-[13px] font-medium text-ink-400 transition-colors duration-150 hover:bg-canvas hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
         >
           <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.5} />
           Sign out
