@@ -21,7 +21,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage'
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage'
-import { getAdminToken } from './api/adminApi'
+import { getAdminToken, clearAdminAuth } from './api/adminApi'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { useTheme } from './hooks/useTheme'
 import type { TabId } from './data'
@@ -93,6 +93,11 @@ function AppShell() {
   if (currentPath.startsWith('/admin')) {
     const hasAdminToken = Boolean(getAdminToken())
 
+    const handleAdminLogout = () => {
+      clearAdminAuth()
+      navigate('/admin/login')
+    }
+
     if (currentPath === '/admin/login') {
       if (hasAdminToken) {
         // If already authenticated as admin, go straight to dashboard
@@ -101,7 +106,7 @@ function AppShell() {
             theme={theme}
             onToggleTheme={toggleTheme}
             onNavigate={navigate}
-            onLogout={() => navigate('/admin/login')}
+            onLogout={handleAdminLogout}
           />
         )
       }
@@ -131,7 +136,7 @@ function AppShell() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onNavigate={navigate}
-          onLogout={() => navigate('/admin/login')}
+          onLogout={handleAdminLogout}
         />
       )
     }
@@ -144,7 +149,7 @@ function AppShell() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onNavigate={navigate}
-          onLogout={() => navigate('/admin/login')}
+          onLogout={handleAdminLogout}
         />
       )
     }
@@ -154,7 +159,7 @@ function AppShell() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onNavigate={navigate}
-        onLogout={() => navigate('/admin/login')}
+        onLogout={handleAdminLogout}
       />
     )
   }
