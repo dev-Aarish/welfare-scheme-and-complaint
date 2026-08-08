@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { BadgeCheck, Check, Clock3, Pencil } from 'lucide-react'
+import { BadgeCheck, Check, Clock3, Pencil, Sparkles } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { Toggle } from '../components/Toggle'
 import { FamilyMembersCard } from '../components/FamilyMembersCard'
 import { profile, user, type ProfileRow } from '../data'
+import { useAuth } from '../context/AuthContext'
 import { useReveal } from '../hooks/useReveal'
 
 export function ProfilePage() {
   const [share, setShare] = useState(true)
+  const { guest, profile: localProfile, identity } = useAuth()
   const verified = profile.documents.filter((d) => d.status === 'Verified').length
   const total = profile.documents.length
   const scope = useReveal<HTMLDivElement>()
+
+  if (!guest) return <RealProfile localProfile={localProfile} identity={identity} />
 
   return (
     <div>
@@ -277,6 +281,75 @@ function CardTitle({ title }: { title: string }) {
       >
         <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
       </button>
+    </div>
+  )
+}
+
+/* Minimal view for authenticated (non-demo) users — no mock household,
+   family members or documents. Shows only identity fields. */
+function RealProfile({
+  localProfile,
+  identity,
+}: {
+  localProfile: ReturnType<typeof useAuth>['profile']
+  identity: ReturnType<typeof useAuth>['identity']
+}) {
+  const scope = useReveal<HTMLDivElement>()
+
+  return (
+    <div>
+      <PageHeader
+        title="My profile"
+        subtitle="This profile powers every eligibility match you see. Add your household details and family members to start matching."
+      />
+
+      <div
+        ref={scope}
+        className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3 max-md:mt-5 max-md:gap-4"
+      >
+        <div data-reveal>
+          <div className="h-full rounded-2xl border border-border-subtle bg-surface p-6 shadow-soft max-md:p-4">
+            <div className="relative inline-block">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-brand-orange to-[#c97a45] text-xl font-semibold text-white">
+                {identity.initials}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-surface bg-brand-mint" />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <h2 className="font-display text-xl font-semibold text-ink-900">
+                {identity.name}
+              </h2>
+              <BadgeCheck className="h-5 w-5 text-brand-mint" strokeWidth={1.75} />
+            </div>
+            <p className="mt-1 text-[13px] text-ink-400">{identity.meta}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:col-span-2">
+          <div data-reveal>
+            <InfoCard
+              title="Personal details"
+              rows={[
+                { label: 'Name', value: identity.name },
+                { label: 'Email', value: localProfile?.email || '—' },
+                { label: 'Role', value: identity.meta },
+              ]}
+            />
+          </div>
+          <div data-reveal>
+            <div className="flex h-full flex-col justify-center rounded-2xl border border-dashed border-border-subtle bg-canvas/40 p-6 text-center max-md:p-4">
+              <Sparkles className="mx-auto h-6 w-6 text-brand-orange" />
+              <p className="mt-3 font-display text-base font-semibold text-ink-900">
+                No household details yet
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-400">
+                Add your occupation, income band, land and family members to
+                unlock scheme eligibility matching and document tracking.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DecorativeBackground } from './components/DecorativeBackground'
 import { AuthPage } from './pages/auth/AuthPage'
-import type { Role } from './pages/auth/copy'
 import { OfficerPage } from './pages/officer/OfficerPage'
 import { OfficerMapPage } from './pages/officer/OfficerMapPage'
 import { OfficerProfilePage } from './pages/officer/OfficerProfilePage'
@@ -23,29 +22,25 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage'
 import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage'
 import { getAdminToken } from './api/adminApi'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { useTheme } from './hooks/useTheme'
 import type { TabId } from './data'
 
-const AUTH_KEY = 'sevanest-auth'
-
-/** Persists which role is signed in (UI-only mock): returns the stored role,
- *  or null when nobody is signed in. */
-function readAuthRole(): Role | null {
-  try {
-    const v = localStorage.getItem(AUTH_KEY)
-    return v === 'citizen' || v === 'officer' ? v : null
-  } catch {
-    return null
-  }
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  )
 }
 
-export default function App() {
+function AppShell() {
   const [tab, setTab] = useState<TabId>('overview')
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null)
   const { theme, toggle } = useTheme()
-  /* UI-only mock gate: the AuthPage signs the demo session in/out locally. */
-  const [authed, setAuthed] = useState<boolean>(() => readAuthRole() !== null)
-  const [role, setRole] = useState<Role>(() => readAuthRole() ?? 'citizen')
+  /* Supabase session when configured; guest role when demo mode. */
+  const { loading, session, role, guest, signOut } = useAuth()
+  const authed = guest || session !== null
 
   /* Route path state for /admin pathname handling */
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
@@ -68,24 +63,8 @@ export default function App() {
     setTab(newTab)
   }
 
-  const signIn = (r: Role) => {
-    try {
-      localStorage.setItem(AUTH_KEY, r)
-    } catch {
-      /* storage unavailable — session still signs in */
-    }
-    setRole(r)
-    setAuthed(true)
-  }
-
-  const signOut = () => {
-    try {
-      localStorage.removeItem(AUTH_KEY)
-    } catch {
-      /* ignore */
-    }
-    setRole('citizen')
-    setAuthed(false)
+  const handleSignOut = () => {
+    signOut()
     setTab('overview')
     setSelectedSchemeId(null)
   }
@@ -181,11 +160,19 @@ export default function App() {
   }
 
   /* ── CITIZEN & OFFICER ROUTE HANDLING (UNTOUCHED) ─────────────── */
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-canvas font-sans text-ink-900">
+        <p className="text-sm text-ink-400">Loading…</p>
+      </div>
+    )
+  }
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-canvas font-sans text-ink-900">
         <DecorativeBackground insetForSidebar={false} />
-        <AuthPage theme={theme} onToggleTheme={toggleTheme} onSignIn={signIn} />
+        <AuthPage theme={theme} onToggleTheme={toggleTheme} />
       </div>
     )
   }
@@ -200,7 +187,7 @@ export default function App() {
         onSelect={handleTabSelect}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onSignOut={signOut}
+        onSignOut={handleSignOut}
         role={role}
       />
       <MobileTabBar active={tab} onSelect={handleTabSelect} role={role} />
@@ -256,7 +243,7 @@ export default function App() {
             ) : (
               <HelplinePage />
             ))}
-          <Footer onSignOut={signOut} />
+          <Footer onSignOut={handleSignOut} />
         </main>
       </div>
     </div>

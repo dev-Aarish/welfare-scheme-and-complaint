@@ -2,7 +2,9 @@ import * as FamilyModel from '../models/familyModel.js';
 
 export const fetchFamilyMembers = async (req, res) => {
   try {
-    const { userId } = req.query;
+    // Authenticated sessions are always scoped to the signed-in user;
+    // ?userId is kept for demo/guest mode where no session exists.
+    const userId = req.user?.localUser?.id ?? req.query.userId ?? null;
     const members = await FamilyModel.getFamilyMembers(userId ? String(userId) : null);
     return res.status(200).json({
       success: true,
@@ -29,7 +31,10 @@ export const createFamilyMember = async (req, res) => {
       });
     }
 
-    const member = await FamilyModel.addFamilyMember(req.body);
+    const payload = req.user?.localUser?.id
+      ? { ...req.body, userId: req.user.localUser.id }
+      : req.body;
+    const member = await FamilyModel.addFamilyMember(payload);
     return res.status(201).json({
       success: true,
       data: member

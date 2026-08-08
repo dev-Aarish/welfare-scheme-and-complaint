@@ -1,8 +1,9 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { GuideCard } from './GuideCard'
-import { complaints, stats, user } from '../data'
+import { complaints, stats } from '../data'
 import { gsap, useGSAP } from '../lib/animations'
+import { useAuth } from '../context/AuthContext'
 
 /* Status strip on mobile mirrors the ComplaintRow grammar (dot + label). */
 const STATUS_STRIP = [
@@ -17,6 +18,7 @@ const STATUS_STRIP = [
 
 export function Hero({ onReport }: { onReport: () => void }) {
   const scope = useRef<HTMLElement>(null)
+  const { identity } = useAuth()
 
   useGSAP(
     () => {
@@ -109,7 +111,7 @@ export function Hero({ onReport }: { onReport: () => void }) {
             data-hero="title"
             className="mt-5 font-display text-4xl font-semibold leading-tight text-ink-900 sm:text-[40px] max-lg:hidden"
           >
-            Hi, {user.name.split(' ')[0]}! 👋
+            Hi, {identity.firstName}! 👋
           </h1>
           <p
             data-hero="sub"

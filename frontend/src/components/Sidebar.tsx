@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronRight, LogOut, ShieldCheck } from 'lucide-react'
-import { tabs, user, officer, type Tab, type TabId } from '../data'
+import { tabs, type Tab, type TabId } from '../data'
+import { useAuth } from '../context/AuthContext'
 import type { Role } from '../pages/auth/copy'
 import type { Theme } from '../hooks/useTheme'
 import { useNavPillSettle } from '../hooks/useNavPillSettle'
@@ -23,7 +24,7 @@ export function Sidebar({
   onSignOut,
   role,
 }: SidebarProps) {
-  const identity = role === 'officer' ? officer : user
+  const { identity } = useAuth()
   const visibleTabs = tabs.filter((t) => role === 'officer' || !t.officerOnly)
   /* Nav pill settles softly into its new position on tab switch (§3.2). */
   const scope = useNavPillSettle(active)
@@ -51,7 +52,7 @@ export function Sidebar({
             {identity.name}
           </p>
           <p className="truncate text-xs text-ink-400">
-            {role === 'officer' ? officer.designation : 'Citizen · verified'}
+            {identity.meta}
           </p>
         </div>
         <ChevronDown className="h-4 w-4 shrink-0 text-ink-400" />

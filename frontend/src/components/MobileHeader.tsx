@@ -1,5 +1,5 @@
-import { officer, user } from '../data'
 import type { Role } from '../pages/auth/copy'
+import { useAuth } from '../context/AuthContext'
 import type { Theme } from '../hooks/useTheme'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -14,7 +14,8 @@ interface MobileHeaderProps {
    the auth screen only); the bottom tab bar replaces the old pill row. */
 export function MobileHeader({ theme, onToggleTheme, role }: MobileHeaderProps) {
   const isOfficer = role === 'officer'
-  const firstName = (isOfficer ? officer.name : user.name).split(' ')[0]
+  const { identity } = useAuth()
+  const firstName = identity.firstName
 
   return (
     <header className="sticky top-0 z-30 border-b border-border-subtle bg-canvas/85 backdrop-blur lg:hidden">

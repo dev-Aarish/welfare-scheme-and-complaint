@@ -1,10 +1,12 @@
 import { BadgeCheck, Check, Lock } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
-import { officer, officerAccess, officerPerformance, officerProfile } from '../../data'
+import { officerAccess, officerPerformance, officerProfile } from '../../data'
+import { useAuth } from '../../context/AuthContext'
 import { useReveal } from '../../hooks/useReveal'
 
 export function OfficerProfilePage() {
   const scope = useReveal<HTMLDivElement>()
+  const { identity } = useAuth()
 
   return (
     <div>
@@ -46,11 +48,12 @@ export function OfficerProfilePage() {
 }
 
 function OfficerSummary() {
+  const { identity, guest } = useAuth()
   return (
     <div className="h-full rounded-2xl border border-border-subtle bg-surface p-6 shadow-soft max-md:p-4">
       <div className="relative inline-block">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-brand-orange to-[#c97a45] text-xl font-semibold text-white">
-          {officer.initials}
+          {identity.initials}
         </div>
         <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-surface bg-brand-navy dark:bg-[#16151b]">
           <BadgeCheck className="h-3 w-3 text-brand-mint" strokeWidth={2} />
@@ -58,11 +61,11 @@ function OfficerSummary() {
       </div>
       <div className="mt-4 flex items-center gap-2">
         <h2 className="font-display text-xl font-semibold text-ink-900">
-          {officer.name}
+          {identity.name}
         </h2>
       </div>
       <p className="mt-1 text-[13px] text-ink-400">
-        Block Officer · Uluberia-I · Howrah
+        {guest ? 'Block Officer · Uluberia-I · Howrah' : identity.meta}
       </p>
 
       <div className="mt-5 flex items-center gap-2.5 rounded-xl bg-canvas/70 px-4 py-3">

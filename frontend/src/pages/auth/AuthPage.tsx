@@ -8,7 +8,6 @@ import {
   Languages,
   Lock,
   Mail,
-  Phone,
   RefreshCw,
   ShieldCheck,
   UserRound,
@@ -16,17 +15,17 @@ import {
 import { Logo } from '../../components/Logo'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import type { Theme } from '../../hooks/useTheme'
+import { useAuth } from '../../context/AuthContext'
 import { gsap, useGSAP, pressChip } from '../../lib/animations'
 import { copy, LANGS, type Lang, type Mode, type Role } from './copy'
 
 interface AuthPageProps {
   theme: Theme
   onToggleTheme: () => void
-  /** UI-only mock: called with the selected role when its flow "completes". */
-  onSignIn: (role: Role) => void
 }
 
-const OTP_LENGTH = 6
+const OTP_MIN = 6
+const OTP_MAX = 8
 
 /* Shared field shell (design.md §5: 14px radius, canvas fill, orange focus ring) */
 function Field({
@@ -69,7 +68,8 @@ const primaryBtn =
 const orangeLink =
   'text-[13px] font-semibold text-[#b06a34] transition-colors duration-150 hover:text-ink-900 dark:text-[#f0a468]'
 
-export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
+export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
+  const { sendOtp, verifyOtp, resendOtp, officerSignIn, signInAsGuest } = useAuth()
   /* English by default; the audience can switch to Bengali or Hindi. */
   const [lang, setLang] = useState<Lang>('en')
   const [role, setRole] = useState<Role>('citizen')
@@ -77,20 +77,20 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
   const [step, setStep] = useState<'form' | 'otp'>('form')
 
   const [name, setName] = useState('')
-  const [mobile, setMobile] = useState('')
-  const [otp, setOtp] = useState<string[]>(() => Array(OTP_LENGTH).fill(''))
+  const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState<string[]>(() => Array(OTP_MAX).fill(''))
   const [officerId, setOfficerId] = useState('')
   const [officerPw, setOfficerPw] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resendIn, setResendIn] = useState(30)
+  const [busy, setBusy] = useState(false)
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
   const scope = useRef<HTMLDivElement>(null)
 
   const t = copy[lang]
-  /* No masking: the code is sent to this number, so show all of it. */
-  const fullMobile = mobile
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   /* ── Signature entrance (Animations.md §3.1 pattern): card → brand column
      → form column, staggered. Reduced motion renders statically. ───────── */
@@ -135,7 +135,7 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
     setRole(r)
     setStep('form')
     setMode('signin')
-    setOtp(Array(OTP_LENGTH).fill(''))
+    setOtp(Array(OTP_MAX).fill(''))
     setError(null)
   }
 
@@ -144,15 +144,31 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
     setError(null)
   }
 
-  const submitMobile = () => {
-    if (mobile.replace(/\D/g, '').length !== 10) {
+  const submitEmail = async () => {
+    if (!emailPattern.test(email.trim())) {
       setError(t.errMobile)
       return
     }
     setError(null)
-    setOtp(Array(OTP_LENGTH).fill(''))
+    setBusy(true)
+    const { error: sendError } = await sendOtp(email, name.trim() || undefined)
+    setBusy(false)
+    if (sendError) {
+      setError(sendError)
+      return
+    }
+    setOtp(Array(OTP_MAX).fill(''))
     setStep('otp')
     setResendIn(30)
+  }
+
+  const submitVerification = async (code: string) => {
+    if (busy) return
+    setError(null)
+    setBusy(true)
+    const { error: verifyError } = await verifyOtp(email, code)
+    setBusy(false)
+    if (verifyError) setError(verifyError)
   }
 
   const handleOtpChange = (i: number, raw: string) => {
@@ -160,7 +176,7 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
     const next = [...otp]
     if (digits.length > 1) {
       /* Paste a whole code: distribute across the boxes from here on. */
-      for (let k = 0; k < digits.length && i + k < OTP_LENGTH; k++) {
+      for (let k = 0; k < digits.length && i + k < OTP_MAX; k++) {
         next[i + k] = digits[k]
       }
     } else {
@@ -169,16 +185,16 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
     setOtp(next)
     setError(null)
 
-    /* All six digits in for the first time → sign in (UI-only mock). */
-    const wasComplete = otp.every(Boolean)
-    if (!wasComplete && next.every(Boolean)) {
-      window.setTimeout(() => onSignIn(role), 180)
+    /* Once a full code is typed (6–8 digits) → verify against Supabase.
+       Only auto-verify when all boxes are filled (no trailing empties). */
+    if (next.every(Boolean)) {
+      window.setTimeout(() => submitVerification(next.join('')), 180)
       return
     }
 
     const focusIdx =
-      digits.length > 1 ? Math.min(i + digits.length, OTP_LENGTH - 1) : i + 1
-    if (digits.length > 0 && focusIdx < OTP_LENGTH) {
+      digits.length > 1 ? Math.min(i + digits.length, OTP_MAX - 1) : i + 1
+    if (digits.length > 0 && focusIdx < OTP_MAX) {
       otpRefs.current[focusIdx]?.focus()
     }
   }
@@ -188,25 +204,37 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
   }
 
   const submitOtp = () => {
-    if (otp.some((d) => !d)) {
+    const code = otp.join('') // trailing empty boxes contribute no characters
+    if (code.length < OTP_MIN) {
       setError(t.errOtp)
       return
     }
-    onSignIn(role)
+    submitVerification(code)
   }
 
-  const resend = () => {
-    setOtp(Array(OTP_LENGTH).fill(''))
+  const resend = async () => {
+    setBusy(true)
+    const { error: sendError } = await resendOtp(email)
+    setBusy(false)
+    if (sendError) {
+      setError(sendError)
+      return
+    }
+    setOtp(Array(OTP_MAX).fill(''))
     setResendIn(30)
     otpRefs.current[0]?.focus()
   }
 
-  const submitOfficer = () => {
+  const submitOfficer = async () => {
     if (!officerId.trim() || !officerPw) {
       setError(t.errLogin)
       return
     }
-    onSignIn('officer')
+    setError(null)
+    setBusy(true)
+    const { error: signInError } = await officerSignIn(officerId.trim(), officerPw)
+    setBusy(false)
+    if (signInError) setError(signInError)
   }
 
   const onFormSubmit = (e: FormEvent) => e.preventDefault()
@@ -446,35 +474,39 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
                       )}
 
                       <Field
-                        icon={<Phone className="h-[17px] w-[17px]" strokeWidth={1.5} />}
+                        icon={<Mail className="h-[17px] w-[17px]" strokeWidth={1.5} />}
                         className={mode === 'signup' ? 'mt-3' : 'mt-5'}
                       >
-                        <label className="sr-only" htmlFor="auth-mobile">
-                          {t.mobileLabel}
+                        <label className="sr-only" htmlFor="auth-email">
+                          {t.emailLabel}
                         </label>
                         <input
-                          id="auth-mobile"
-                          type="tel"
-                          inputMode="numeric"
-                          autoComplete="tel"
-                          maxLength={10}
-                          value={mobile}
+                          id="auth-email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          value={email}
                           onChange={(e) => {
-                            setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))
+                            setEmail(e.target.value)
                             setError(null)
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') submitMobile()
+                            if (e.key === 'Enter') submitEmail()
                           }}
-                          placeholder={t.mobilePlaceholder}
+                          placeholder={t.emailPlaceholder}
                           className={fieldInput}
                         />
                       </Field>
-                      <p className="mt-2 text-xs text-ink-400">{t.mobileHelper}</p>
+                      <p className="mt-2 text-xs text-ink-400">{t.emailHelper}</p>
 
                       <FormError message={error} />
 
-                      <button type="button" onClick={submitMobile} className={`${primaryBtn} mt-5`}>
+                      <button
+                        type="button"
+                        onClick={submitEmail}
+                        disabled={busy}
+                        className={`${primaryBtn} mt-5 disabled:opacity-45`}
+                      >
                         {t.sendCode}
                         <ArrowRight className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -496,9 +528,7 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
                       </h2>
                       <p className="mt-1 text-sm leading-relaxed text-ink-700">
                         {t.otpSub}{' '}
-                        <span className="font-semibold text-ink-900">
-                          +91 {fullMobile}
-                        </span>{' '}
+                        <span className="font-semibold text-ink-900">{email}</span>{' '}
                         <button
                           type="button"
                           onClick={() => setStep('form')}
@@ -546,7 +576,7 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
                       <button
                         type="button"
                         onClick={submitOtp}
-                        disabled={otp.some((d) => !d)}
+                        disabled={otp.join('').length < OTP_MIN || busy}
                         className={`${primaryBtn} mt-4 disabled:opacity-45`}
                       >
                         {t.verify}
@@ -620,7 +650,8 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
                     <button
                       type="button"
                       onClick={submitOfficer}
-                      className={`${primaryBtn} mt-4`}
+                      disabled={busy}
+                      className={`${primaryBtn} mt-4 disabled:opacity-45`}
                     >
                       {t.officerBtn}
                       <ArrowRight className="h-4 w-4" strokeWidth={2} />
@@ -651,11 +682,10 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
                 </p>
               )}
 
-              {/* Demo escape hatch: no real authentication yet, so anyone can
-                  continue to the homepage without signing in. */}
+              {/* Demo escape hatch — guest mode, works even without Supabase. */}
               <button
                 type="button"
-                onClick={() => onSignIn(role)}
+                onClick={() => signInAsGuest(role)}
                 className="mt-3 block w-full text-center text-[13px] text-ink-400 underline decoration-ink-400/30 underline-offset-4 transition-colors duration-150 hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
               >
                 {t.continueAnyway}
