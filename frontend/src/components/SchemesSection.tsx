@@ -341,9 +341,11 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme, onMatchesChange 
   const matches = showAllMatches ? allMatches : allMatches.slice(0, 11)
 
   // Report the real matched-scheme count so the hero stat is accurate.
+  // Guarded: only report once real data exists — never report 0 while still
+  // loading or on remount (which would reset a known count back to zero).
   useEffect(() => {
-    onMatchesChange?.(allMatches.length)
-  }, [allMatches.length, onMatchesChange])
+    if (aiMatchData) onMatchesChange?.(allMatches.length)
+  }, [allMatches.length, aiMatchData, onMatchesChange])
 
   return (
     <section ref={scope} className="mt-10 lg:mt-12 max-md:mt-8">
@@ -357,7 +359,11 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme, onMatchesChange 
           </p>
         </div>
         <span className="shrink-0 self-start rounded-full bg-brand-orange/15 px-3.5 py-1.5 text-xs font-bold text-brand-orange shadow-soft md:self-auto">
-          ⚡ {allMatches.length <= 11 || showAllMatches ? `${allMatches.length} verified matches` : `Showing 11 of ${allMatches.length} verified matches`}
+          {loadingAi
+            ? '⚡ Matching…'
+            : allMatches.length <= 11 || showAllMatches
+              ? `${allMatches.length} verified matches`
+              : `Showing 11 of ${allMatches.length} verified matches`}
         </span>
       </div>
 
