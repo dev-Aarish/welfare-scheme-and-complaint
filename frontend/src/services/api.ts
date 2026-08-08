@@ -2,7 +2,7 @@
 
 import { supabase } from '../lib/supabase'
 
-export const API_BASE_URL = 'http://localhost:5100/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5100/api';
 
 /** Attaches the Supabase JWT when a session exists, so protected
  *  backend routes can identify the caller. */

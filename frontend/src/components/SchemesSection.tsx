@@ -38,74 +38,102 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
   const [activeFollowupScheme, setActiveFollowupScheme] = useState<any | null>(null)
   const [_followupAnswers, setFollowupAnswers] = useState<Record<string, any>>({})
   const [numberInputValue, setNumberInputValue] = useState<string>('')
+  const [showAllMatches, setShowAllMatches] = useState<boolean>(false)
 
   const scope = useReveal<HTMLElement>()
   const { guest: demo } = useAuth()
 
   // Load family members & fetch initial AI matches
-  useEffect(() => {
-    async function loadData() {
-      const members = await fetchFamilyMembers()
-      if (members && members.length > 0) {
-        setFamilyMembers(members)
-      } else if (demo) {
-        setFamilyMembers([
-          {
-            id: 'father-1',
-            fullName: 'Ramesh Mukherjee',
-            relation: 'Father',
-            dob: '1968-05-15',
-            age: 58,
-            gender: 'Male',
-            occupation: 'Farmer',
-            annualIncome: 65000,
-            isStudent: false,
-            isDisability: false,
-            landAcres: 1.5,
-          },
-          {
-            id: 'mother-1',
-            fullName: 'Sunita Mukherjee',
-            relation: 'Mother',
-            dob: '1972-08-20',
-            age: 54,
-            gender: 'Female',
-            occupation: 'Homemaker',
-            annualIncome: 0,
-            isStudent: false,
-            isDisability: false,
-            landAcres: 0,
-          },
-          {
-            id: 'son-1',
-            fullName: 'Sourav Mukherjee',
-            relation: 'Son',
-            dob: '2005-03-12',
-            age: 21,
-            gender: 'Male',
-            occupation: 'Student',
-            annualIncome: 0,
-            isStudent: true,
-            isDisability: false,
-            landAcres: 0,
-          },
-        ])
-      } else {
-        setFamilyMembers([])
-      }
-
-      // Initial AI Match fetch for the signed-in household.
-      // Demo mode seeds Asha's (demo) profile; real users start empty and
-      // trigger a match via the natural-language box or by choosing a member.
-      if (demo) {
-        fetchAiMatches({
-          person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
-          household: { annualIncome: 120000, landAcres: 1.5 },
-          location: { state: 'WEST_BENGAL' },
-        })
-      }
+  const loadData = async () => {
+    let currentMembers: FamilyMemberData[] = []
+    const members = await fetchFamilyMembers()
+    if (members && members.length > 0) {
+      currentMembers = members
+      setFamilyMembers(members)
+    } else if (demo) {
+      currentMembers = [
+        {
+          id: 'father-1',
+          fullName: 'Ramesh Mukherjee',
+          relation: 'Father',
+          dob: '1968-05-15',
+          age: 58,
+          gender: 'Male',
+          occupation: 'Farmer',
+          annualIncome: 65000,
+          isStudent: false,
+          isDisability: false,
+          landAcres: 1.5,
+        },
+        {
+          id: 'mother-1',
+          fullName: 'Sunita Mukherjee',
+          relation: 'Mother',
+          dob: '1972-08-20',
+          age: 54,
+          gender: 'Female',
+          occupation: 'Homemaker',
+          annualIncome: 0,
+          isStudent: false,
+          isDisability: false,
+          landAcres: 0,
+        },
+        {
+          id: 'son-1',
+          fullName: 'Sourav Mukherjee',
+          relation: 'Son',
+          dob: '2005-03-12',
+          age: 21,
+          gender: 'Male',
+          occupation: 'Student',
+          annualIncome: 0,
+          isStudent: true,
+          isDisability: false,
+          landAcres: 0,
+        },
+      ]
+      setFamilyMembers(currentMembers)
+    } else {
+      setFamilyMembers([])
     }
+
+    // Initial AI Match fetch for the household
+    if (currentMembers.length > 0) {
+      fetchAiMatches({
+        members: currentMembers.map((m) => ({
+          fullName: m.fullName,
+          relation: m.relation,
+          age: m.age,
+          gender: m.gender,
+          occupation: m.occupation,
+          isStudent: Boolean(m.isStudent || m.occupation === 'Student'),
+          isDisability: Boolean(m.isDisability),
+          annualIncome: m.annualIncome,
+          landAcres: m.landAcres,
+          state: m.state || 'West Bengal',
+        })),
+        household: { annualIncome: 120000, landAcres: 1.5 },
+        location: { state: 'WEST_BENGAL' },
+      })
+    } else if (demo) {
+      fetchAiMatches({
+        person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
+        household: { annualIncome: 120000, landAcres: 1.5 },
+        location: { state: 'WEST_BENGAL' },
+      })
+    }
+  }
+
+  useEffect(() => {
     loadData()
+
+    const handleFamilyUpdated = () => {
+      loadData()
+    }
+    window.addEventListener('familyMembersUpdated', handleFamilyUpdated)
+    return () => {
+      window.removeEventListener('familyMembersUpdated', handleFamilyUpdated)
+    }
   }, [demo])
 
   const fetchAiMatches = async (profileContext?: any, rawPromptText?: string) => {
@@ -130,8 +158,6 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       data?: FamilyMemberData
     }[] = []
 
-    // Real (non-demo) users start without a profile, so a seeded "Self" would
-    // leak demo data — only show it in demo mode.
     if (demo) {
       const selfProfile: FamilyMemberData = {
         id: 'self',
@@ -150,6 +176,8 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
         { id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' },
         { id: 'self', label: 'Asha Verma (Self)', icon: User, subtitle: '32 yrs · Female · Farmer · Income < ₹2L/yr', data: selfProfile },
       )
+    } else {
+      choices.push({ id: 'all', label: 'All Household', icon: Users, subtitle: 'Combined family profile matching' })
     }
 
     choices.push(
@@ -188,8 +216,8 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           age: m.age,
           gender: m.gender.toUpperCase(),
           occupation: m.occupation.toUpperCase(),
-          isStudent: m.isStudent || m.occupation === 'Student',
-          isDisability: m.isDisability,
+          isStudent: Boolean(m.isStudent || m.occupation === 'Student'),
+          isDisability: Boolean(m.isDisability),
         },
         household: {
           annualIncome: m.annualIncome || 120000,
@@ -198,6 +226,23 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
         location: {
           state: (m.state || 'West Bengal').toUpperCase().replace(/ /g, '_'),
         },
+      })
+    } else if (familyMembers.length > 0) {
+      fetchAiMatches({
+        members: familyMembers.map((m) => ({
+          fullName: m.fullName,
+          relation: m.relation,
+          age: m.age,
+          gender: m.gender,
+          occupation: m.occupation,
+          isStudent: Boolean(m.isStudent || m.occupation === 'Student'),
+          isDisability: Boolean(m.isDisability),
+          annualIncome: m.annualIncome,
+          landAcres: m.landAcres,
+          state: m.state || 'West Bengal',
+        })),
+        household: { annualIncome: 120000, landAcres: 1.5 },
+        location: { state: 'WEST_BENGAL' },
       })
     } else {
       fetchAiMatches({
@@ -234,9 +279,9 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
     setActiveFollowupScheme(null)
   }
 
-  // Filter schemes list (show first 11 cards; the 12th slot is the catalog CTA card)
+  // Filter schemes list
   const allMatches = aiMatchData?.matches || []
-  const matches = allMatches.slice(0, 11)
+  const matches = showAllMatches ? allMatches : allMatches.slice(0, 11)
 
   return (
     <section ref={scope} className="mt-10 lg:mt-12 max-md:mt-8">
@@ -250,7 +295,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           </p>
         </div>
         <span className="shrink-0 self-start rounded-full bg-brand-orange/15 px-3.5 py-1.5 text-xs font-bold text-brand-orange shadow-soft md:self-auto">
-          ⚡ {allMatches.length} verified matches
+          ⚡ {allMatches.length <= 11 || showAllMatches ? `${allMatches.length} verified matches` : `Showing 11 of ${allMatches.length} verified matches`}
         </span>
       </div>
 
@@ -358,6 +403,18 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
                     {item.benefit}
                   </p>
 
+                  {/* Matched Family Members Badges */}
+                  {(item as any).matchedMembers && (item as any).matchedMembers.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1">
+                      {(item as any).matchedMembers.map((m: any, idx: number) => (
+                        <span key={idx} className="inline-flex items-center gap-1 rounded-md bg-brand-navy/10 px-2 py-0.5 text-[10px] font-bold text-ink-900 dark:bg-white/10 dark:text-white">
+                          <User className="h-3 w-3 text-brand-orange" />
+                          {m.name} ({m.relation})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   {/* AI Explanation Bullets */}
                   <div className="mt-3 rounded-xl bg-canvas/60 p-3 text-[11px] space-y-1">
                     <p className="font-semibold text-ink-900 flex items-center gap-1">
@@ -405,6 +462,21 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
           <div data-reveal>
             <AddNewCard onOpenCatalog={onOpenCatalog} />
           </div>
+        </div>
+      )}
+
+      {/* Expand / Collapse All Matches Button */}
+      {!loadingAi && allMatches.length > 11 && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setShowAllMatches(!showAllMatches)}
+            className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface px-6 py-3 text-xs font-bold text-ink-900 shadow-soft transition-all hover:bg-canvas hover:shadow-lift"
+          >
+            <Sparkles className="h-4 w-4 text-brand-orange" />
+            {showAllMatches
+              ? 'Show Less (Top 11 Matches)'
+              : `View All ${allMatches.length} Verified Matches (${allMatches.length - 11} More)`}
+          </button>
         </div>
       )}
 

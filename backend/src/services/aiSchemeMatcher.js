@@ -175,10 +175,12 @@ function calculateRelevanceScore(scheme, context) {
   const loc = context.location || {};
   const text = ` ${scheme.title} ${scheme.category} ${scheme.tag || ''} ${scheme.benefit} ${scheme.description} ${scheme.eligibility} `.toLowerCase();
 
-  const isAgriScheme = text.includes('farmer') || text.includes('agri') || text.includes('kisan') || text.includes('crop') || scheme.category === 'Agriculture' || scheme.category === 'Farmer';
-  const isStudentScheme = text.includes('student') || text.includes('scholarship') || text.includes('education') || text.includes('school') || text.includes('college') || scheme.category === 'Education';
-  const isFemaleScheme = text.includes('women') || text.includes('girl') || text.includes('mother') || text.includes('widow') || text.includes('kanyashree') || text.includes('bhandar');
-  const isSeniorScheme = text.includes('old age') || text.includes('pension') || text.includes('senior citizen') || text.includes('vayo');
+  const isAgriScheme = text.includes('farmer') || text.includes('agri') || text.includes('kisan') || text.includes('crop') || text.includes('soil') || text.includes('harvest') || text.includes('tractor') || scheme.category === 'Agriculture' || scheme.category === 'Farmer';
+  const isStudentScheme = text.includes('student') || text.includes('scholarship') || text.includes('education') || text.includes('school') || text.includes('college') || text.includes('fellowship') || text.includes('matric') || scheme.category === 'Education';
+  const isFemaleScheme = text.includes('women') || text.includes('girl') || text.includes('mother') || text.includes('widow') || text.includes('kanyashree') || text.includes('bhandar') || text.includes('sukanya') || text.includes('matru') || text.includes('female');
+  const isSeniorScheme = text.includes('old age') || text.includes('pension') || text.includes('senior citizen') || text.includes('vayo') || text.includes('elderly');
+  const isDisabilityScheme = text.includes('disability') || text.includes('handicapped') || text.includes('divyang') || text.includes('pwd') || text.includes('adip') || text.includes('prosthetic');
+  const isLaborScheme = text.includes('labour') || text.includes('worker') || text.includes('mgnrega') || text.includes('unorganized') || text.includes('construction worker') || text.includes('shramik');
 
   // Strict State Mismatch Check
   const userState = (loc.state || 'WEST_BENGAL').toUpperCase().replace(/ /g, '_');
@@ -191,45 +193,65 @@ function calculateRelevanceScore(scheme, context) {
     }
   }
 
-  // Strict Occupation Penalties & Boosts
-  if (p.occupation === 'FARMER') {
+  // Occupation Alignment & Penalties
+  const occ = (p.occupation || '').toUpperCase();
+
+  if (occ === 'FARMER' || p.landAcres > 0) {
     if (isAgriScheme) score += 35;
-    else if (isStudentScheme) score -= 30;
+    else if (isStudentScheme || isSeniorScheme) score -= 25;
   }
 
-  if (p.isStudent || p.occupation === 'STUDENT') {
-    if (isStudentScheme) score += 35;
+  if (p.isStudent || occ === 'STUDENT') {
+    if (isStudentScheme) score += 40;
     else if (isAgriScheme) score -= 30;
   }
 
-  if (p.occupation === 'HOMEMAKER') {
-    if (isFemaleScheme) score += 25;
+  if (occ === 'HOMEMAKER') {
+    if (isFemaleScheme) score += 30;
     if (isAgriScheme || isStudentScheme) score -= 25;
   }
 
+  if (occ === 'DAILY WAGE WORKER' || occ === 'DAILY_WAGE_WORKER' || occ === 'UNORGANIZED') {
+    if (isLaborScheme) score += 35;
+  }
+
+  if (occ === 'RETIRED' || p.relation === 'DEPENDENT SENIOR' || p.relation === 'Father' || p.relation === 'Mother') {
+    if (isSeniorScheme && p.age >= 55) score += 35;
+  }
+
+  // Disability / PwD Alignment
+  if (p.isDisability) {
+    if (isDisabilityScheme) score += 45;
+  } else {
+    if (isDisabilityScheme) score -= 50; // Non-disabled persons shouldn't get PwD schemes
+  }
+
   // Gender Alignment
-  if (p.gender === 'FEMALE') {
-    if (isFemaleScheme) score += 20;
-  } else if (p.gender === 'MALE') {
-    if (isFemaleScheme) score -= 50; // Hard penalty for males on female schemes
+  const gender = (p.gender || '').toUpperCase();
+  if (gender === 'FEMALE') {
+    if (isFemaleScheme) score += 25;
+  } else if (gender === 'MALE') {
+    if (isFemaleScheme) score -= 60; // Hard penalty for males on female schemes
   }
 
   // Age Alignment
   if (p.age !== undefined && p.age !== null) {
     if (p.age < 60 && isSeniorScheme) {
-      score -= 40;
+      score -= 50; // Under 60 cannot get senior citizen pension
     }
     if (p.age >= 60 && isSeniorScheme) {
-      score += 30;
+      score += 35;
     }
-    if (p.age >= 18 && (text.includes('minor') || text.includes('child under 18'))) {
-      score -= 40;
+    if (p.age >= 18 && (text.includes('minor') || text.includes('child under 18') || text.includes('schoolgirl'))) {
+      score -= 50;
     }
   }
 
   // Income Alignment
-  if (h.annualIncome && h.annualIncome <= 200000 && (text.includes('bpl') || text.includes('subsidy') || text.includes('dbt') || text.includes('low income'))) {
-    score += 10;
+  if (h.annualIncome !== undefined && h.annualIncome !== null && h.annualIncome <= 200000) {
+    if (text.includes('bpl') || text.includes('subsidy') || text.includes('dbt') || text.includes('low income') || text.includes('ration') || text.includes('free')) {
+      score += 15;
+    }
   }
 
   return Math.min(99, Math.max(10, score));
@@ -262,85 +284,156 @@ function generateExplanation(scheme, evalResult, context) {
  * Main 6-Stage Backend Scheme Matching Pipeline
  */
 export async function matchSchemesPipeline({ rawPrompt, structuredProfile }) {
-  // Stage 1: AI Profile Parser using Official @google/genai SDK (gemini-2.5-flash)
   let context = structuredProfile;
   if (!context && rawPrompt) {
     context = await parseNaturalLanguageProfile(rawPrompt);
   }
 
-  if (!context) {
-    context = {
-      person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
-      household: { annualIncome: 120000, landAcres: 1.5 },
-      location: { state: 'WEST_BENGAL' },
-    };
-  }
-
-  // Normalize LLM sentinel values (-1, "", "Female") so missing data stays null
-  context = sanitizeContext(context);
-
-  if (!context.location || !context.location.state) {
-    context.location.state = 'WEST_BENGAL';
-  }
-
-  // Normalize state representation
-  context.location.state = context.location.state.toUpperCase().replace(/ /g, '_');
-
-  // Stage 2: PostgreSQL Candidate Retrieval (Broad & Fast Pre-Filter)
   const candidateRes = await findSchemes({ page: 1, limit: 200 });
   const candidates = candidateRes.schemes || [];
 
-  // Stage 3: Rule-Tree AST Validator (SOLE AUTHORITY for eligibility status)
+  const hasMembersList = context && Array.isArray(context.members) && context.members.length > 0;
   const matches = [];
 
-  for (const scheme of candidates) {
-    // Construct strict AST scheme rules
-    const rules = scheme.eligibilityRules || buildDefaultSchemeRules(scheme, context);
+  if (hasMembersList) {
+    // Multi-member household evaluation
+    for (const scheme of candidates) {
+      const qualifyingMembers = [];
+      let bestRelevanceScore = 0;
+      let primaryEvalResult = null;
 
-    const evalResult = evaluateSchemeEligibility(rules, context);
+      for (const m of context.members) {
+        const memberContext = sanitizeContext({
+          person: {
+            fullName: m.fullName || m.name,
+            relation: m.relation || 'Member',
+            age: typeof m.age === 'number' ? m.age : parseInt(m.age, 10) || 30,
+            gender: (m.gender || 'Female').trim().toUpperCase(),
+            occupation: (m.occupation || 'Farmer').trim().toUpperCase(),
+            isStudent: Boolean(m.isStudent || (m.occupation && m.occupation.trim().toUpperCase() === 'STUDENT')),
+            isDisability: Boolean(m.isDisability),
+          },
+          household: {
+            annualIncome: typeof m.annualIncome === 'number' ? m.annualIncome : (context.household?.annualIncome || 120000),
+            landAcres: typeof m.landAcres === 'number' ? m.landAcres : (context.household?.landAcres || 0),
+          },
+          location: {
+            state: (m.state || context.location?.state || 'WEST_BENGAL').toUpperCase().replace(/ /g, '_'),
+          },
+        });
 
-    // Filter out INELIGIBLE schemes from recommendations
-    if (evalResult.status === 'INELIGIBLE') {
-      continue;
+        const rules = scheme.eligibilityRules || buildDefaultSchemeRules(scheme, memberContext);
+        const evalResult = evaluateSchemeEligibility(rules, memberContext);
+
+        if (evalResult.status !== 'INELIGIBLE') {
+          const score = calculateRelevanceScore(scheme, memberContext);
+          if (score >= 50) {
+            qualifyingMembers.push({
+              name: m.fullName || m.name,
+              relation: m.relation || 'Member',
+              score,
+              status: evalResult.status,
+              evalResult,
+            });
+            if (score > bestRelevanceScore) {
+              bestRelevanceScore = score;
+              primaryEvalResult = evalResult;
+            }
+          }
+        }
+      }
+
+      if (qualifyingMembers.length > 0) {
+        const primaryResult = primaryEvalResult || qualifyingMembers[0].evalResult;
+        
+        let explanation = '';
+        if (qualifyingMembers.length === context.members.length && context.members.length > 1) {
+          explanation = `✓ Matched for all ${context.members.length} household members based on demographic profile.`;
+        } else {
+          const namesStr = qualifyingMembers.map(qm => `${qm.name} (${qm.relation})`).join(', ');
+          explanation = `✓ Matched for: ${namesStr}`;
+        }
+
+        const humanizedMatchedRules = (primaryResult.matchedRules || []).map(humanizeRule);
+        const followUpQuestions = primaryResult.missingFields.length > 0
+          ? generateFollowUpQuestions(primaryResult.missingFields)
+          : [];
+
+        matches.push({
+          schemeId: scheme.id,
+          title: scheme.title,
+          category: scheme.category,
+          tag: scheme.tag || scheme.category,
+          benefit: scheme.benefit,
+          description: scheme.description,
+          eligibility: scheme.eligibility,
+          status: primaryResult.status,
+          relevanceScore: bestRelevanceScore,
+          matchedMembers: qualifyingMembers.map(qm => ({ name: qm.name, relation: qm.relation, score: qm.score })),
+          ruleVersion: '2026-08-01',
+          officialSourceUrl: scheme.sourceUrl || 'https://myscheme.gov.in',
+          matchedRules: humanizedMatchedRules,
+          missingFields: primaryResult.missingFields,
+          failedRules: primaryResult.failedRules,
+          followUpQuestions,
+          explanation,
+        });
+      }
     }
-
-    // Stage 4: Follow-up Question Generator (if missing fields exist)
-    const followUpQuestions = evalResult.missingFields.length > 0
-      ? generateFollowUpQuestions(evalResult.missingFields)
-      : [];
-
-    // Stage 5: Strict Semantic Relevance Ranker
-    const relevanceScore = calculateRelevanceScore(scheme, context);
-
-    // Strict Filter: keep schemes at/above the neutral baseline (50).
-    // Hard mismatches (other-state schemes, male on women-only schemes,
-    // wrong occupation/student profile) already score far below 50.
-    if (relevanceScore < 50) {
-      continue;
+  } else {
+    // Single profile evaluation
+    let singleContext = sanitizeContext(context);
+    if (!singleContext) {
+      singleContext = {
+        person: { age: 32, gender: 'FEMALE', occupation: 'FARMER', isStudent: false },
+        household: { annualIncome: 120000, landAcres: 1.5 },
+        location: { state: 'WEST_BENGAL' },
+      };
     }
+    if (!singleContext.location || !singleContext.location.state) {
+      singleContext.location = singleContext.location || {};
+      singleContext.location.state = 'WEST_BENGAL';
+    }
+    singleContext.location.state = singleContext.location.state.toUpperCase().replace(/ /g, '_');
 
-    // Stage 6: Explanation Generator
-    const explanation = generateExplanation(scheme, evalResult, context);
-    const humanizedMatchedRules = (evalResult.matchedRules || []).map(humanizeRule);
+    for (const scheme of candidates) {
+      const rules = scheme.eligibilityRules || buildDefaultSchemeRules(scheme, singleContext);
+      const evalResult = evaluateSchemeEligibility(rules, singleContext);
 
-    matches.push({
-      schemeId: scheme.id,
-      title: scheme.title,
-      category: scheme.category,
-      tag: scheme.tag || scheme.category,
-      benefit: scheme.benefit,
-      description: scheme.description,
-      eligibility: scheme.eligibility,
-      status: evalResult.status, // ELIGIBLE, POTENTIALLY_ELIGIBLE, MORE_INFO_REQUIRED
-      relevanceScore,
-      ruleVersion: '2026-08-01',
-      officialSourceUrl: scheme.sourceUrl || 'https://myscheme.gov.in',
-      matchedRules: humanizedMatchedRules,
-      missingFields: evalResult.missingFields,
-      failedRules: evalResult.failedRules,
-      followUpQuestions,
-      explanation,
-    });
+      if (evalResult.status === 'INELIGIBLE') {
+        continue;
+      }
+
+      const relevanceScore = calculateRelevanceScore(scheme, singleContext);
+      if (relevanceScore < 50) {
+        continue;
+      }
+
+      const followUpQuestions = evalResult.missingFields.length > 0
+        ? generateFollowUpQuestions(evalResult.missingFields)
+        : [];
+      const explanation = generateExplanation(scheme, evalResult, singleContext);
+      const humanizedMatchedRules = (evalResult.matchedRules || []).map(humanizeRule);
+
+      matches.push({
+        schemeId: scheme.id,
+        title: scheme.title,
+        category: scheme.category,
+        tag: scheme.tag || scheme.category,
+        benefit: scheme.benefit,
+        description: scheme.description,
+        eligibility: scheme.eligibility,
+        status: evalResult.status,
+        relevanceScore,
+        ruleVersion: '2026-08-01',
+        officialSourceUrl: scheme.sourceUrl || 'https://myscheme.gov.in',
+        matchedRules: humanizedMatchedRules,
+        missingFields: evalResult.missingFields,
+        failedRules: evalResult.failedRules,
+        followUpQuestions,
+        explanation,
+      });
+    }
   }
 
   // Sort by Relevance Score descending
@@ -373,7 +466,7 @@ function buildDefaultSchemeRules(scheme, context) {
   }
 
   // 3. Student Exclusions (Strict)
-  if (text.includes('scholarship') || text.includes('student') || text.includes('post-matric') || text.includes('pre-matric') || text.includes('school') || text.includes('fellowship') || scheme.category === 'Education') {
+  if (text.includes('scholarship') || text.includes('student') || text.includes('post-matric') || text.includes('pre-matric') || text.includes('fellowship') || scheme.category === 'Education') {
     rules.all.push({ field: 'person.isStudent', operator: 'EQ', value: true });
   }
 
@@ -390,6 +483,11 @@ function buildDefaultSchemeRules(scheme, context) {
   // 6. Minor / Child Exclusions (Strict Age < 18)
   if (text.includes('child under 18') || text.includes('infant') || text.includes('schoolgirl')) {
     rules.all.push({ field: 'person.age', operator: 'LT', value: 18 });
+  }
+
+  // 7. Disability Exclusions (Strict)
+  if (text.includes('disability') || text.includes('divyang') || text.includes('handicapped') || text.includes('pwd') || text.includes('adip')) {
+    rules.all.push({ field: 'person.isDisability', operator: 'EQ', value: true });
   }
 
   return rules.all.length > 0 ? rules : null;
