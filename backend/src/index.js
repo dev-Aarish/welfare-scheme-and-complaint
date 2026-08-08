@@ -4,7 +4,10 @@ import dotenv from 'dotenv';
 import schemeRoutes from './routes/schemeRoutes.js';
 import familyRoutes from './routes/familyRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { prisma } from './config/prismaClient.js';
+import { initEscalationScheduler } from './services/escalationService.js';
 
 dotenv.config();
 
@@ -23,6 +26,8 @@ app.get('/health', (req, res) => {
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 async function startServer() {
   try {
@@ -32,6 +37,9 @@ async function startServer() {
     console.warn('⚠️ PostgreSQL Connection Warning:', error.message);
     console.warn('💡 Tip: Update DATABASE_URL in backend/.env with your local PostgreSQL password.');
   }
+
+  // Initialize Escalation System background scheduler
+  initEscalationScheduler();
 
   app.listen(PORT, () => {
     console.log(`🚀 Welfare Schemes Backend Server running on http://localhost:${PORT}`);

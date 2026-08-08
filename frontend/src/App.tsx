@@ -18,6 +18,11 @@ import { ProfilePage } from './pages/ProfilePage'
 import { CatalogPage } from './pages/CatalogPage'
 import { SchemeDetailPage } from './pages/SchemeDetailPage'
 import { HelplinePage } from './pages/HelplinePage'
+import { AdminLoginPage } from './pages/admin/AdminLoginPage'
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
+import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage'
+import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage'
+import { getAdminToken } from './api/adminApi'
 import { useTheme } from './hooks/useTheme'
 import type { TabId } from './data'
 
@@ -41,6 +46,22 @@ export default function App() {
   /* UI-only mock gate: the AuthPage signs the demo session in/out locally. */
   const [authed, setAuthed] = useState<boolean>(() => readAuthRole() !== null)
   const [role, setRole] = useState<Role>(() => readAuthRole() ?? 'citizen')
+
+  /* Route path state for /admin pathname handling */
+  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
+
+  useEffect(() => {
+    const onPopState = () => {
+      setCurrentPath(window.location.pathname)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  const navigate = (path: string) => {
+    window.history.pushState(null, '', path)
+    setCurrentPath(path)
+  }
 
   const handleTabSelect = (newTab: TabId) => {
     setSelectedSchemeId(null)
@@ -89,6 +110,77 @@ export default function App() {
     }
   }, [tab, selectedSchemeId])
 
+  /* ── ADMIN ROUTE HANDLING ─────────────── */
+  if (currentPath.startsWith('/admin')) {
+    const hasAdminToken = Boolean(getAdminToken())
+
+    if (currentPath === '/admin/login') {
+      if (hasAdminToken) {
+        // If already authenticated as admin, go straight to dashboard
+        return (
+          <AdminDashboardPage
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onNavigate={navigate}
+            onLogout={() => navigate('/admin/login')}
+          />
+        )
+      }
+      return (
+        <AdminLoginPage
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onSuccess={() => navigate('/admin/dashboard')}
+        />
+      )
+    }
+
+    // Protected Routes: /admin/dashboard, /admin/complaints, /admin/complaints/:id
+    if (!hasAdminToken) {
+      return (
+        <AdminLoginPage
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onSuccess={() => navigate(currentPath.startsWith('/admin/complaints') ? currentPath : '/admin/dashboard')}
+        />
+      )
+    }
+
+    if (currentPath === '/admin/complaints') {
+      return (
+        <AdminComplaintsPage
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onNavigate={navigate}
+          onLogout={() => navigate('/admin/login')}
+        />
+      )
+    }
+
+    if (currentPath.startsWith('/admin/complaints/')) {
+      const complaintId = currentPath.replace('/admin/complaints/', '')
+      return (
+        <AdminComplaintDetailPage
+          complaintId={complaintId}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onNavigate={navigate}
+          onLogout={() => navigate('/admin/login')}
+        />
+      )
+    }
+
+    return (
+      <AdminDashboardPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onNavigate={navigate}
+        onLogout={() => navigate('/admin/login')}
+      />
+    )
+  }
+
+  /* ── CITIZEN & OFFICER ROUTE HANDLING (UNTOUCHED) ─────────────── */
   if (!authed) {
     return (
       <div className="min-h-screen bg-canvas font-sans text-ink-900">

@@ -1,8 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { SchemeCard, CARD_COLORS } from './SchemeCard'
-import { ListRow } from './ListRow'
-import { ComplaintBar } from './ComplaintBar'
 import { useReveal } from '../hooks/useReveal'
 import {
   fetchFamilyMembers,
@@ -10,7 +7,7 @@ import {
   type FamilyMemberData,
   type AiMatchResponse,
 } from '../services/api'
-import { User, Users, GraduationCap, Sprout, Heart, Sparkles, Send, HelpCircle, X, CheckCircle2 } from 'lucide-react'
+import { User, Users, GraduationCap, Sprout, Heart, Sparkles, Send, HelpCircle, X } from 'lucide-react'
 
 interface SchemesSectionProps {
   onOpenCatalog?: () => void
@@ -31,17 +28,16 @@ function setDeepProperty(obj: any, path: string, value: any) {
 }
 
 export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSectionProps) {
-  const [query, setQuery] = useState('')
+  const [_query, _setQuery] = useState('')
   const [naturalPrompt, setNaturalPrompt] = useState('')
   const [selectedMemberId, setSelectedMemberId] = useState<string>('all')
   const [familyMembers, setFamilyMembers] = useState<FamilyMemberData[]>([])
   const [aiMatchData, setAiMatchData] = useState<AiMatchResponse | null>(null)
   const [loadingAi, setLoadingAi] = useState<boolean>(false)
   const [activeFollowupScheme, setActiveFollowupScheme] = useState<any | null>(null)
-  const [followupAnswers, setFollowupAnswers] = useState<Record<string, any>>({})
+  const [_followupAnswers, setFollowupAnswers] = useState<Record<string, any>>({})
   const [numberInputValue, setNumberInputValue] = useState<string>('')
 
-  const inputRef = useRef<HTMLInputElement>(null)
   const scope = useReveal<HTMLElement>()
 
   // Load family members & fetch initial AI matches
@@ -301,7 +297,6 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme }: SchemesSection
       {!loadingAi && (
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5 max-md:mt-4">
           {matches.map((item) => {
-            const isEligible = item.status === 'ELIGIBLE'
             const isMoreInfo = item.status === 'MORE_INFO_REQUIRED'
             const isPotential = item.status === 'POTENTIALLY_ELIGIBLE'
 

@@ -7,6 +7,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  CITIZEN
+  OFFICER
+  ADMIN
+}
+
+enum ComplaintStatus {
+  OPEN
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
 model Scheme {
   id                String    @id @default(uuid())
   externalId        String?   @map("external_id")
@@ -32,44 +48,118 @@ model Scheme {
   @@map("schemes")
 }
 
-model User {
-  id            String         @id @default(uuid())
-  email         String?        @unique
-  fullName      String         @map("full_name")
-  phone         String?
-  state           String   @default("WEST_BENGAL")
-  casteCategory String         @default("General") @map("caste_category")
-  annualIncome  Float          @default(120000) @map("annual_income")
-  
-  familyMembers FamilyMember[]
+model Department {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  code        String?
+  description String?
+  complaints  Complaint[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  @@map("departments")
+}
+
+model User {
+  id                 String                   @id @default(uuid())
+  email              String?                  @unique
+  fullName           String                   @map("full_name")
+  phone              String?
+  passwordHash       String?                  @map("password_hash")
+  role               Role                     @default(CITIZEN)
+  state              String                   @default("WEST_BENGAL")
+  casteCategory      String                   @default("General") @map("caste_category")
+  annualIncome       Float                    @default(120000) @map("annual_income")
+  
+  familyMembers      FamilyMember[]
+  complaints         Complaint[]              @relation("CitizenComplaints")
+  assignedComplaints Complaint[]              @relation("AssignedOfficerComplaints")
+  authoredRemarks    ComplaintRemark[]        @relation("AuthoredRemarks")
+  statusChanges      ComplaintStatusHistory[] @relation("StatusChanges")
+
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
 
   @@map("users")
 }
 
 model FamilyMember {
-  id              String   @id @default(uuid())
-  userId          String?  @map("user_id")
-  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  fullName        String   @map("full_name")
-  relation        String   // Father, Mother, Spouse, Son, Daughter, Brother, Sister, Dependent Senior, Other
-  dob             String?  // Date of Birth (YYYY-MM-DD)
-  age             Int
-  gender          String   // Male, Female, Other
-  state           String   @default("WEST_BENGAL")
-  residenceType   String   @default("RURAL") @map("residence_type") // Rural, Urban
-  occupation      String   // Farmer, Daily Wage Worker, Salaried, Student, Unemployed, Retired, Small Business, Homemaker
-  annualIncome    Float    @default(0) @map("annual_income")
-  isStudent       Boolean  @default(false) @map("is_student")
-  isDisability    Boolean  @default(false) @map("is_disability")
-  landAcres       Float    @default(0) @map("land_acres")
-  notes           String?
+  fullName      String   @map("full_name")
+  relation      String   // Father, Mother, Spouse, Son, Daughter, Brother, Sister, Dependent Senior, Other
+  dob           String?  // Date of Birth (YYYY-MM-DD)
+  age           Int
+  gender        String   // Male, Female, Other
+  state         String   @default("WEST_BENGAL")
+  residenceType String   @default("RURAL") @map("residence_type") // Rural, Urban
+  occupation    String   // Farmer, Daily Wage Worker, Salaried, Student, Unemployed, Retired, Small Business, Homemaker
+  annualIncome  Float    @default(0) @map("annual_income")
+  isStudent     Boolean  @default(false) @map("is_student")
+  isDisability  Boolean  @default(false) @map("is_disability")
+  landAcres     Float    @default(0) @map("land_acres")
+  notes         String?
 
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("family_members")
+}
+
+model Complaint {
+  id                   String                   @id @default(uuid())
+  ref                  String                   @unique
+  title                String
+  description          String?                  @db.Text
+  location             String
+  status               ComplaintStatus          @default(OPEN)
+
+  isEscalated          Boolean                  @default(false) @map("is_escalated")
+  escalationLevel      Int                      @default(0) @map("escalation_level")
+  escalatedAt          DateTime?                @map("escalated_at")
+  
+  userId               String?                  @map("user_id")
+  user                 User?                    @relation("CitizenComplaints", fields: [userId], references: [id], onDelete: SetNull)
+
+  assignedDepartmentId String?                  @map("assigned_department_id")
+  assignedDepartment   Department?              @relation(fields: [assignedDepartmentId], references: [id], onDelete: SetNull)
+
+  assignedOfficerId    String?                  @map("assigned_officer_id")
+  assignedOfficer      User?                    @relation("AssignedOfficerComplaints", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+
+  remarks              ComplaintRemark[]
+  statusHistory        ComplaintStatusHistory[]
+
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  @@map("complaints")
+}
+
+model ComplaintRemark {
+  id          String    @id @default(uuid())
+  complaintId String    @map("complaint_id")
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  adminId     String?   @map("admin_id")
+  admin       User?     @relation("AuthoredRemarks", fields: [adminId], references: [id], onDelete: SetNull)
+  remark      String    @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("complaint_remarks")
+}
+
+model ComplaintStatusHistory {
+  id             String    @id @default(uuid())
+  complaintId    String    @map("complaint_id")
+  complaint      Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  previousStatus String?   @map("previous_status")
+  newStatus      String    @map("new_status")
+  changedById    String?   @map("changed_by_id")
+  changedBy      User?     @relation("StatusChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  remark         String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("complaint_status_histories")
 }

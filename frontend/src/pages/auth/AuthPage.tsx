@@ -242,7 +242,19 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
         <path d="M5 50 C 35 15, 65 85, 95 50 S 155 15, 185 50" />
       </svg>
 
-      <div className="absolute right-6 top-6 z-20">
+      <div className="absolute right-6 top-6 z-20 flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => {
+            window.history.pushState(null, '', '/admin/login')
+            window.dispatchEvent(new Event('popstate'))
+          }}
+          className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface/80 px-3.5 py-2 text-[13px] font-semibold text-ink-700 backdrop-blur-sm transition-all duration-150 hover:border-brand-orange hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange shadow-soft"
+          title="Go to Admin Login"
+        >
+          <ShieldCheck className="h-4 w-4 text-brand-orange" />
+          <span>Admin Login</span>
+        </button>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
@@ -648,6 +660,20 @@ export function AuthPage({ theme, onToggleTheme, onSignIn }: AuthPageProps) {
               >
                 {t.continueAnyway}
               </button>
+
+              <div className="mt-4 pt-3 border-t border-border-subtle text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.history.pushState(null, '', '/admin/login')
+                    window.dispatchEvent(new Event('popstate'))
+                  }}
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-xl border border-border-subtle bg-canvas/60 px-4 py-2.5 text-xs font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-orange hover:bg-surface hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
+                >
+                  <ShieldCheck className="h-4 w-4 text-brand-orange" />
+                  <span>Admin Portal Login</span>
+                </button>
+              </div>
             </div>
           </section>
         </div>
