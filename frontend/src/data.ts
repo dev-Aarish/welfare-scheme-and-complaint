@@ -53,14 +53,6 @@ export const user = {
   meta: 'Female, 32 · Rural · Farmer · Income under ₹2L/yr',
 }
 
-/* ── Stats shown in the hero ─────────────────────────────── */
-
-export const stats = [
-  { value: '6', label: 'schemes matched' },
-  { value: '4', label: 'reports tracked' },
-  { value: '4.2 days', label: 'avg. resolution' },
-]
-
 /* ── Welfare schemes (rule-based eligibility matches) ────── */
 
 export type CardColor =

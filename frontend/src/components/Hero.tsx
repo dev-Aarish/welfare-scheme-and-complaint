@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { GuideCard } from './GuideCard'
-import { complaints } from '../data'
+import type { Complaint } from '../data'
 import { gsap, useGSAP } from '../lib/animations'
 import { useAuth } from '../context/AuthContext'
 
@@ -19,21 +19,35 @@ const STATUS_STRIP = [
 export function Hero({
   onReport,
   schemesMatched,
+  complaints,
+  avgResolution,
+  loading,
 }: {
   onReport: () => void
   /** null = count not known yet (still matching) — rendered as a placeholder. */
   schemesMatched: number | null
+  /** The citizen's own reports (demo data in guest mode). */
+  complaints: Complaint[]
+  /** Average days-to-resolution across resolved reports; null when none. */
+  avgResolution: number | null
+  /** True while real complaint data is being fetched from the backend. */
+  loading: boolean
 }) {
   const scope = useRef<HTMLElement>(null)
   const { identity } = useAuth()
 
+  const reportsTracked = loading ? '–' : String(complaints.length)
+  const avgLabel =
+    loading || avgResolution == null
+      ? '–'
+      : `${avgResolution} day${avgResolution === 1 ? '' : 's'}`
   const stats = [
     {
       value: schemesMatched == null ? '–' : String(schemesMatched),
       label: 'schemes matched',
     },
-    { value: '4', label: 'reports tracked' },
-    { value: '4.2 days', label: 'avg. resolution' },
+    { value: reportsTracked, label: 'reports tracked' },
+    { value: avgLabel, label: 'avg. resolution' },
   ]
 
   useGSAP(
@@ -182,9 +196,9 @@ export function Hero({
           aria-label="Report status counts"
         >
           {STATUS_STRIP.map((item) => {
-            const count = complaints.filter(
-              (c) => c.status === item.status,
-            ).length
+            const count = loading
+              ? '–'
+              : complaints.filter((c) => c.status === item.status).length
             return (
               <span
                 key={item.label}

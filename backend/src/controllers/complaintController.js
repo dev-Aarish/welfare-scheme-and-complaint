@@ -19,6 +19,36 @@ function raisePriority(priority) {
   return levels[Math.min(Math.max(currentIndex, 0) + 1, levels.length - 1)];
 }
 
+/** GET /api/complaints — the signed-in citizen's own complaints, newest
+ *  first, with the relations needed to render a tracking list (department,
+ *  officer, remarks, evidence and the status trail). Anonymous reports are
+ *  never returned here: they have no linked identity, by design. */
+export async function getMyComplaints(req, res) {
+  try {
+    const userId = req.user?.localUser?.id;
+    if (!userId) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const complaints = await prisma.complaint.findMany({
+      where: { userId },
+      include: {
+        assignedDepartment: { select: { id: true, name: true, code: true } },
+        assignedOfficer: { select: { id: true, fullName: true, email: true } },
+        evidence: { orderBy: { createdAt: 'desc' } },
+        remarks: { orderBy: { createdAt: 'desc' } },
+        statusHistory: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json({ success: true, data: complaints });
+  } catch (error) {
+    console.error('Error fetching my complaints:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch complaints.' });
+  }
+}
+
 export async function createComplaint(req, res) {
   try {
     const { title, description, category, priority, latitude, longitude, photo, video } = req.body;

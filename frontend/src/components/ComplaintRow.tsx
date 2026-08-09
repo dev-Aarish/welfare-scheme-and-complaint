@@ -27,18 +27,28 @@ const STATUS_STYLES: Record<
   },
 }
 
+export { STATUS_STYLES }
+
 /** One complaint row — shared by the citizen reports list and the officer
  *  case log so both sides of the portal read identically (design.md §7). */
-export function ComplaintRow({ complaint }: { complaint: Complaint }) {
+export function ComplaintRow({
+  complaint,
+  onClick,
+}: {
+  complaint: Complaint
+  onClick?: () => void
+}) {
   const style = STATUS_STYLES[complaint.status]
   const Icon = style.icon
   const resolved = complaint.status === 'Resolved'
 
   return (
     <button
+      type="button"
+      onClick={onClick}
       className={`group flex w-full items-center gap-4 rounded-2xl border border-border-subtle bg-surface p-4 text-left shadow-soft transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-2 focus-visible:outline-brand-orange md:p-5 max-md:rounded-none max-md:border-0 max-md:shadow-none max-md:px-3.5 max-md:py-3 max-md:hover:translate-y-0 max-md:active:bg-canvas/70 ${
         resolved ? 'opacity-80' : ''
-      }`}
+      } ${onClick ? 'cursor-pointer' : ''}`}
     >
       <span
         data-pop={resolved ? '' : undefined}

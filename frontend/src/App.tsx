@@ -27,6 +27,7 @@ import { AdminComplaintDetailPage } from './pages/admin/AdminComplaintDetailPage
 import { getAdminToken, clearAdminAuth } from './api/adminApi'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { useTheme } from './hooks/useTheme'
+import { useMyComplaints } from './hooks/useMyComplaints'
 import type { TabId } from './data'
 
 export default function App() {
@@ -51,6 +52,17 @@ function AppShell() {
 
   /* Route path state for /admin pathname handling */
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
+
+  /* Real complaint records for the citizen overview — demo data in guest
+     mode, the signed-in user's own reports from the backend otherwise. */
+  const {
+    complaints: overviewComplaints,
+    details: overviewComplaintDetails,
+    avgResolution,
+    loading: complaintsLoading,
+  } = useMyComplaints(
+    !currentPath.startsWith('/admin') && tab === 'overview' && role !== 'officer',
+  )
 
   useEffect(() => {
     const onPopState = () => {
@@ -236,6 +248,9 @@ function AppShell() {
                 <Hero
                   onReport={() => handleTabSelect('helpline')}
                   schemesMatched={schemesMatched}
+                  complaints={overviewComplaints}
+                  avgResolution={avgResolution}
+                  loading={complaintsLoading}
                 />
                 <SchemesSection
                   onOpenCatalog={() => handleTabSelect('schemes')}
@@ -246,7 +261,11 @@ function AppShell() {
                   }}
                   onMatchesChange={setSchemesMatched}
                 />
-                <ResolvedSection />
+                <ResolvedSection
+                  complaints={overviewComplaints}
+                  details={overviewComplaintDetails}
+                  loading={complaintsLoading}
+                />
               </>
             ))}
           {tab === 'map' && role === 'officer' && <OfficerMapPage />}
