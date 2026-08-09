@@ -196,6 +196,24 @@
   animation: bubble-pop 180ms ease-out;
 }
 
+/* Verification toast — brief slide-up from the bottom edge (§3.2). The
+   transform is duplicated in the keyframes so the fixed centered toast
+   stays horizontally centered during the pop. */
+@keyframes toast-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+.toast-pop {
+  animation: toast-pop 240ms ease-out;
+  transform: translateX(-50%);
+}
+
 /* Search / complaint bar focus ring pulse (§3.1) */
 @keyframes search-pulse {
   0% {

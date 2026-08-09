@@ -81,6 +81,7 @@ model User {
   district           String?
 
   familyMembers      FamilyMember[]
+  documents          CitizenDocument[]
   complaints         Complaint[]              @relation("CitizenComplaints")
   assignedComplaints Complaint[]              @relation("AssignedOfficerComplaints")
   authoredRemarks    ComplaintRemark[]        @relation("AuthoredRemarks")
@@ -90,6 +91,26 @@ model User {
   updatedAt          DateTime                 @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model CitizenDocument {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // aadhaar | voter_id | income_certificate | ration_card | bank_passbook | land_record
+  docType   String   @map("doc_type")
+  fileName  String   @map("file_name")
+  fileUrl   String?  @map("file_url")
+  status    String   @default("PENDING") // PENDING (uploaded) | VERIFIED (records cross-check passed)
+  note      String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, docType])
+  @@index([userId])
+  @@map("citizen_documents")
 }
 
 model FamilyMember {

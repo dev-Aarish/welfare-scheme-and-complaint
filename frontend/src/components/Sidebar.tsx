@@ -39,8 +39,14 @@ export function Sidebar({
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
-      {/* User chip */}
-      <div className="mt-7 flex items-center gap-3 rounded-2xl border border-border-subtle px-3 py-2.5">
+      {/* User chip — opens the My profile tab */}
+      <button
+        type="button"
+        onClick={() => onSelect('profile')}
+        title="My profile"
+        aria-current={active === 'profile' ? 'page' : undefined}
+        className="group mt-7 flex w-full items-center gap-3 rounded-2xl border border-border-subtle px-3 py-2.5 text-left transition-colors duration-150 hover:border-brand-orange/40 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-brand-orange"
+      >
         <div className="relative shrink-0">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-orange to-[#c97a45] text-[13px] font-semibold text-white">
             {identity.initials}
@@ -55,8 +61,12 @@ export function Sidebar({
             {identity.meta}
           </p>
         </div>
-        <ChevronDown className="h-4 w-4 shrink-0 text-ink-400" />
-      </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-ink-400 transition-transform duration-150 group-hover:-translate-y-0.5 ${
+            active === 'profile' ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
 
       <nav className="mt-7 flex flex-col gap-1.5" aria-label="Primary">
         {visibleTabs.map((tab) => (
@@ -70,7 +80,9 @@ export function Sidebar({
       </nav>
 
       <div className="mt-auto flex flex-col gap-2">
-        <PromoCard />
+        {role !== 'officer' && (
+          <PromoCard onClick={() => onSelect('verification')} />
+        )}
         <button
           type="button"
           onClick={() => {
@@ -122,9 +134,14 @@ function NavItem({
   )
 }
 
-function PromoCard() {
+function PromoCard({ onClick }: { onClick: () => void }) {
   return (
-    <button className="group relative w-full overflow-hidden rounded-2xl border border-border-subtle bg-surface p-4 text-left shadow-soft transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-brand-orange">
+    <button
+      type="button"
+      onClick={onClick}
+      title="Verify documents to unlock more matches"
+      className="group relative w-full overflow-hidden rounded-2xl border border-border-subtle bg-surface p-4 text-left shadow-soft transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-brand-orange"
+    >
       <ChevronRight className="absolute right-3 top-3 h-4 w-4 text-ink-400 transition-transform duration-150 group-hover:translate-x-0.5" />
       <p className="pr-6 text-sm font-semibold leading-snug text-ink-900">
         Let's verify your documents
