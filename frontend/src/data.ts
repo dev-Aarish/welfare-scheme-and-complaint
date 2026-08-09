@@ -36,14 +36,19 @@ export interface Tab {
   icon: LucideIcon
   /** Staff-only destinations — hidden from the citizen sidebar. */
   officerOnly?: boolean
+  /** Citizen-facing destinations — hidden from the officer sidebar/nav. */
+  officerHidden?: boolean
 }
 
 export const tabs: Tab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutGrid },
   { id: 'map', label: 'Block map', icon: Map, officerOnly: true },
   { id: 'schemes', label: 'Scheme catalog', icon: Library },
-  { id: 'helpline', label: 'Helpline', icon: Phone, officerOnly: true },
-  { id: 'complaints', label: 'File complaint', icon: FileText },
+  // Citizens reach the helpline via the hero "Report an issue" button, so it
+  // stays out of the citizen sidebar (officerOnly) — and it is hidden from
+  // the officer nav entirely (officerHidden).
+  { id: 'helpline', label: 'Helpline', icon: Phone, officerOnly: true, officerHidden: true },
+  { id: 'complaints', label: 'File complaint', icon: FileText, officerHidden: true },
   { id: 'track', label: 'Track complaint', icon: Clock },
   { id: 'chat', label: 'Sahayak chat', icon: MessagesSquare },
   { id: 'profile', label: 'My profile', icon: UserRound },

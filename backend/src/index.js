@@ -11,6 +11,7 @@ import { prisma } from './config/prismaClient.js';
 import { initEscalationScheduler } from './services/escalationService.js';
 import { seedDepartments } from './seeders/departmentSeeder.js';
 import { ensureAdminUser } from './seeders/adminSeeder.js';
+import { ensureOfficers } from './seeders/officerSeeder.js';
 
 const app = express();
 const PORT = process.env.PORT || 5100;
@@ -59,6 +60,10 @@ async function startServer() {
     // freshly deployed or partially-seeded database can never lock the
     // admin out of the portal.
     await ensureAdminUser();
+    // Bootstrap/repair the sample officer users (Prisma rows + Supabase auth)
+    // on every start so the admin officer-assignment dropdown, officer routes
+    // and the officer sign-in form all have real users to work with.
+    await ensureOfficers();
   } catch (error) {
     console.warn('⚠️ PostgreSQL Connection Warning:', error.message);
     console.warn('💡 Tip: Update DATABASE_URL in backend/.env with your local PostgreSQL password.');
