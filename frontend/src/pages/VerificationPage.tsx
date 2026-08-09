@@ -12,6 +12,7 @@ import {
   Lock,
   ScrollText,
   Sparkles,
+  Trash2,
   Upload,
   type LucideIcon,
 } from 'lucide-react'
@@ -19,6 +20,7 @@ import { PageHeader } from '../components/PageHeader'
 import { catalogSchemes, profile } from '../data'
 import { useAuth } from '../context/AuthContext'
 import {
+  deleteVerificationDocument,
   fetchVerificationDocuments,
   uploadVerificationDocument,
   type VerificationDocument,
@@ -90,7 +92,7 @@ function docsFromBackend(rows: VerificationDocument[]): VerificationDoc[] {
     }
     return {
       ...meta,
-      status: 'Pending',
+      status: 'Under review',
       fileName: row.fileName,
       note: row.note || 'Submitted — awaiting records cross-check',
     }
@@ -158,7 +160,7 @@ export function VerificationPage({ onOpenSchemes }: { onOpenSchemes: () => void 
       /* Demo mode — simulate the whole flow locally. */
       setDocs((prev) =>
         prev.map((d) =>
-          d.docType === docType && d.status === 'Pending'
+          d.docType === docType
             ? { ...d, status: 'Under review', fileName: file.name }
             : d,
         ),
@@ -191,7 +193,7 @@ export function VerificationPage({ onOpenSchemes }: { onOpenSchemes: () => void 
     }
     setDocs((prev) =>
       prev.map((d) =>
-        d.docType === docType && d.status === 'Pending'
+        d.docType === docType
           ? { ...d, status: 'Under review', fileName: file.name }
           : d,
       ),
@@ -208,6 +210,36 @@ export function VerificationPage({ onOpenSchemes }: { onOpenSchemes: () => void 
       }
     }, 3200)
     timers.current.push(t)
+  }
+
+  const handleRemove = async (docType: string) => {
+    const label = docs.find((d) => d.docType === docType)?.label ?? 'Document'
+    if (guest) {
+      setDocs((prev) =>
+        prev.map((d) =>
+          d.docType === docType
+            ? { ...d, status: 'Pending', fileName: undefined }
+            : d,
+        ),
+      )
+      showToast(`${label} removed`)
+      return
+    }
+
+    const ok = await deleteVerificationDocument(docType)
+    if (!ok) {
+      showToast('Failed to remove document — please try again.')
+      return
+    }
+
+    setDocs((prev) =>
+      prev.map((d) =>
+        d.docType === docType
+          ? { ...d, status: 'Pending', fileName: undefined }
+          : d,
+      ),
+    )
+    showToast(`${label} removed`)
   }
 
   return (
@@ -247,7 +279,7 @@ export function VerificationPage({ onOpenSchemes }: { onOpenSchemes: () => void 
                 Loading your verification status…
               </div>
             ) : (
-              <ChecklistCard docs={docs} onUpload={handleUpload} />
+              <ChecklistCard docs={docs} onUpload={handleUpload} onRemove={handleRemove} />
             )}
           </div>
         </div>
@@ -394,9 +426,11 @@ function CompleteBanner({
 function ChecklistCard({
   docs,
   onUpload,
+  onRemove,
 }: {
   docs: VerificationDoc[]
   onUpload: (docType: string, file: File | undefined) => void
+  onRemove: (docType: string) => void
 }) {
   const verifiedCount = docs.filter((d) => d.status === 'Verified').length
   /* One shared hidden input; buttons pick which document it feeds. A real
@@ -456,16 +490,30 @@ function ChecklistCard({
                   {doc.fileName ?? doc.note}
                 </p>
 
-                {doc.status === 'Pending' && (
+                <div className="mt-2.5 flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => handlePick(doc.docType)}
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-orange/60 hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-brand-orange"
+                    disabled={doc.status === 'Under review'}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-orange/60 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-brand-orange"
                   >
                     <Upload className="h-3.5 w-3.5" />
-                    Upload
+                    {doc.status === 'Verified' ? 'Re-upload' : doc.status === 'Under review' ? 'Verifying…' : 'Upload'}
                   </button>
-                )}
+
+                  {(doc.status === 'Verified' || doc.fileName) && (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(doc.docType)}
+                      disabled={doc.status === 'Under review'}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-xs font-semibold text-rose-600 transition-colors duration-150 hover:border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-rose-500"
+                      title="Remove uploaded document"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             </li>
           )

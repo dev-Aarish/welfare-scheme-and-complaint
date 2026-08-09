@@ -31,13 +31,36 @@ export function parseMedia(dataUrl, type) {
   return { buffer, extension: MIME_EXTENSIONS[match[1]], mime: match[1] };
 }
 
-/** Writes a data-URL file into the shared uploads folder and returns its
- *  public URL (e.g. /uploads/abc.jpg). Returns null when no file is given. */
+import { supabaseAdmin } from '../config/supabaseClient.js';
+
+/** Writes a data-URL file into Supabase Storage or local uploads folder and returns its public URL */
 export async function saveMedia(dataUrl, type) {
   const media = parseMedia(dataUrl, type);
   if (!media) return null;
-  await mkdir(uploadsDir, { recursive: true });
   const filename = `${randomUUID()}.${media.extension}`;
+
+  if (supabaseAdmin) {
+    try {
+      const bucketName = 'evidence';
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from(bucketName)
+        .upload(filename, media.buffer, { contentType: media.mime, upsert: true });
+
+      if (!uploadError) {
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from(bucketName)
+          .getPublicUrl(filename);
+
+        if (publicUrlData?.publicUrl) {
+          return publicUrlData.publicUrl;
+        }
+      }
+    } catch (supaErr) {
+      console.warn('⚠️ Supabase storage upload fallback to local disk:', supaErr.message);
+    }
+  }
+
+  await mkdir(uploadsDir, { recursive: true });
   await writeFile(path.join(uploadsDir, filename), media.buffer);
   return `/uploads/${filename}`;
 }

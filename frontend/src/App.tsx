@@ -20,6 +20,7 @@ import { SchemeDetailPage } from './pages/SchemeDetailPage'
 import { HelplinePage } from './pages/HelplinePage'
 import { FileComplaintPage } from './pages/FileComplaintPage'
 import { AnonymousComplaintPage } from './pages/AnonymousComplaintPage'
+import { ComplaintTrackingPage } from './pages/ComplaintTrackingPage'
 import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage'
@@ -39,7 +40,28 @@ export default function App() {
 }
 
 function AppShell() {
-  const [tab, setTab] = useState<TabId>('overview')
+  /* Route path state for /admin pathname handling */
+  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
+
+  const [tab, setTabState] = useState<TabId>(() => {
+    const path = window.location.pathname
+    if (path === '/file-complaint') return 'complaints'
+    if (path.startsWith('/complaints/track')) return 'track'
+    try {
+      const saved = localStorage.getItem('sevanest-active-tab') as TabId
+      const valid: TabId[] = ['overview', 'map', 'chat', 'profile', 'schemes', 'helpline', 'complaints', 'track', 'verification']
+      if (saved && valid.includes(saved)) return saved
+    } catch {}
+    return 'overview'
+  })
+
+  const setTab = (newTab: TabId) => {
+    setTabState(newTab)
+    try {
+      localStorage.setItem('sevanest-active-tab', newTab)
+    } catch {}
+  }
+
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null)
   /* Real count arrives from the backend AI matcher (SchemesSection reports
      it via onMatchesChange). Starts as null = "not known yet" so the hero
@@ -49,9 +71,6 @@ function AppShell() {
   /* Supabase session when configured; guest role when demo mode. */
   const { loading, session, role, guest, signOut } = useAuth()
   const authed = guest || session !== null
-
-  /* Route path state for /admin pathname handling */
-  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
 
   /* Real complaint records for the citizen overview — demo data in guest
      mode, the signed-in user's own reports from the backend otherwise. */
@@ -183,7 +202,20 @@ function AppShell() {
     )
   }
 
-  /* ── CITIZEN & OFFICER ROUTE HANDLING (UNTOUCHED) ─────────────── */
+  /* ── CITIZEN & OFFICER ROUTE HANDLING ─────────────────────────── */
+  if (currentPath.startsWith('/complaints/track')) {
+    const queryParams = new URLSearchParams(window.location.search);
+    const refParam = queryParams.get('ref') || undefined;
+    return (
+      <ComplaintTrackingPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onNavigate={navigate}
+        initialRef={refParam}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-canvas font-sans text-ink-900">
@@ -293,7 +325,29 @@ function AppShell() {
             ) : (
               <HelplinePage />
             ))}
-          {tab === 'complaints' && role !== 'officer' && <FileComplaintPage />}
+          {tab === 'complaints' && role !== 'officer' && (
+            <FileComplaintPage
+              onNavigate={(path) => {
+                if (path.startsWith('/complaints/track')) {
+                  window.history.pushState(null, '', path);
+                  window.dispatchEvent(new Event('popstate'));
+                  setTab('track');
+                }
+              }}
+            />
+          )}
+          {tab === 'track' && (
+            <ComplaintTrackingPage
+              theme={theme}
+              onToggleTheme={toggle}
+              onNavigate={(path) => {
+                window.history.pushState(null, '', path);
+                window.dispatchEvent(new Event('popstate'));
+                if (path === '/') setTab('overview');
+                else if (path === '/file-complaint') setTab('complaints');
+              }}
+            />
+          )}
           {tab === 'verification' && role !== 'officer' && (
             <VerificationPage onOpenSchemes={() => handleTabSelect('schemes')} />
           )}

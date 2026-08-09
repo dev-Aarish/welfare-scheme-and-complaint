@@ -14,13 +14,20 @@ enum Role {
 }
 
 enum ComplaintStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  DEPARTMENT_ASSIGNED
+  INVESTIGATION_IN_PROGRESS
+  ACTION_TAKEN
+  RESOLVED
+  CLOSED
+  REOPENED
+  MORE_INFO_REQUIRED
+  ESCALATED
   OPEN
   PENDING
   ASSIGNED
   IN_PROGRESS
-  RESOLVED
-  CLOSED
-  ESCALATED
 }
 
 model Scheme {
@@ -141,6 +148,7 @@ model FamilyMember {
 model Complaint {
   id                   String                   @id @default(uuid())
   ref                  String                   @unique
+  trackingPin          String?                  @map("tracking_pin")
   title                String
   description          String?                  @db.Text
   location             String
@@ -150,7 +158,7 @@ model Complaint {
   priority             String                   @default("LOW")
   photoUrl             String?                  @map("photo_url")
   videoUrl             String?                  @map("video_url")
-  status               ComplaintStatus          @default(OPEN)
+  status               ComplaintStatus          @default(SUBMITTED)
 
   isEscalated          Boolean                  @default(false) @map("is_escalated")
   escalationLevel      Int                      @default(0) @map("escalation_level")
@@ -168,6 +176,8 @@ model Complaint {
   remarks              ComplaintRemark[]
   statusHistory        ComplaintStatusHistory[]
   evidence             ComplaintEvidence[]
+  inquiries            ComplaintInquiry[]
+  notifications        Notification[]
 
   createdAt            DateTime                 @default(now()) @map("created_at")
   updatedAt            DateTime                 @updatedAt @map("updated_at")
@@ -211,4 +221,46 @@ model ComplaintStatusHistory {
   createdAt      DateTime  @default(now()) @map("created_at")
 
   @@map("complaint_status_histories")
+}
+
+model ComplaintInquiry {
+  id          String                    @id @default(uuid())
+  complaintId String                    @map("complaint_id")
+  complaint   Complaint                 @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  subject     String
+  status      String                    @default("OPEN") // OPEN | RESOLVED
+  messages    ComplaintInquiryMessage[]
+  createdAt   DateTime                  @default(now()) @map("created_at")
+  updatedAt   DateTime                  @updatedAt @map("updated_at")
+
+  @@index([complaintId])
+  @@map("complaint_inquiries")
+}
+
+model ComplaintInquiryMessage {
+  id            String           @id @default(uuid())
+  inquiryId     String           @map("inquiry_id")
+  inquiry       ComplaintInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  senderType    String           @map("sender_type") // ADMIN | CITIZEN
+  senderName    String           @map("sender_name")
+  message       String           @db.Text
+  attachmentUrl String?          @map("attachment_url")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  @@index([inquiryId])
+  @@map("complaint_inquiry_messages")
+}
+
+model Notification {
+  id          String     @id @default(uuid())
+  complaintId String?    @map("complaint_id")
+  complaint   Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  targetType  String     @map("target_type") // CITIZEN | ADMIN
+  type        String     // INQUIRY_REQUESTED | INQUIRY_REPLIED | STATUS_UPDATED | RESOLUTION_CONFIRMED
+  title       String
+  message     String     @db.Text
+  isRead      Boolean    @default(false) @map("is_read")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@map("notifications")
 }

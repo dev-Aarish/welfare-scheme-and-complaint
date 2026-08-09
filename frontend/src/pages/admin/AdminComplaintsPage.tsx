@@ -51,6 +51,7 @@ const CATEGORIES = [
 
 const PRIORITIES = [
   { value: 'ALL', label: 'All Priorities' },
+  { value: 'CRITICAL', label: 'Critical Priority' },
   { value: 'HIGH', label: 'High Priority' },
   { value: 'MEDIUM', label: 'Medium Priority' },
   { value: 'LOW', label: 'Low Priority' },
@@ -58,9 +59,12 @@ const PRIORITIES = [
 
 const STATUSES = [
   { value: 'ALL', label: 'All Statuses' },
+  { value: 'OPEN', label: 'Open (New)' },
   { value: 'PENDING', label: 'Pending' },
+  { value: 'ASSIGNED', label: 'Assigned' },
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'RESOLVED', label: 'Resolved' },
+  { value: 'CLOSED', label: 'Closed' },
   { value: 'ESCALATED', label: 'Escalated' },
 ];
 
@@ -185,11 +189,25 @@ export function AdminComplaintsPage({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'OPEN':
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Open (New)
+          </span>
+        );
       case 'PENDING':
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-navy/10 px-3 py-1 text-xs font-semibold text-brand-navy dark:bg-brand-navy/40 dark:text-[#f2f0ec]">
             <AlertCircle className="h-3.5 w-3.5" />
             Pending
+          </span>
+        );
+      case 'ASSIGNED':
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 px-3 py-1 text-xs font-semibold text-purple-700 dark:text-purple-400">
+            <Clock className="h-3.5 w-3.5" />
+            Assigned
           </span>
         );
       case 'IN_PROGRESS':
@@ -204,6 +222,13 @@ export function AdminComplaintsPage({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint/25 px-3 py-1 text-xs font-semibold text-[#3d7d6b] dark:text-[#7fd1bb]">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Resolved
+          </span>
+        );
+      case 'CLOSED':
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-500/15 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-400">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Closed
           </span>
         );
       case 'ESCALATED':
@@ -223,7 +248,14 @@ export function AdminComplaintsPage({
   };
 
   const getPriorityBadge = (priority: string) => {
-    switch (priority) {
+    const p = (priority || '').toUpperCase();
+    switch (p) {
+      case 'CRITICAL':
+        return (
+          <span className="inline-flex items-center rounded-md bg-purple-500/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-500/30">
+            Critical
+          </span>
+        );
       case 'HIGH':
         return (
           <span className="inline-flex items-center rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20">

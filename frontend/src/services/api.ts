@@ -98,6 +98,61 @@ export interface MyComplaint {
   }>
 }
 
+export interface TrackingInquiryMessage {
+  id: string;
+  senderType: 'ADMIN' | 'CITIZEN';
+  senderName: string;
+  message: string;
+  attachmentUrl?: string | null;
+  createdAt: string;
+}
+
+export interface TrackingInquiry {
+  id: string;
+  subject: string;
+  status: string;
+  messages: TrackingInquiryMessage[];
+}
+
+export interface TrackedComplaint {
+  id: string;
+  ref: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  category: string;
+  priority: string;
+  location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  photoUrl?: string | null;
+  videoUrl?: string | null;
+  department?: {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    helpline?: string;
+  } | null;
+  officerDesignation?: string;
+  evidence: Array<{
+    id: string;
+    mediaUrl: string;
+    mediaType: string;
+    createdAt: string;
+  }>;
+  statusHistory: Array<{
+    id: string;
+    previousStatus: string | null;
+    newStatus: string;
+    remark?: string | null;
+    createdAt: string;
+  }>;
+  inquiries: TrackingInquiry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Loads the signed-in citizen's own complaints from the backend (newest
  *  first) so the overview can track real reports instead of demo cards. */
 export async function fetchMyComplaints(): Promise<MyComplaint[]> {
@@ -111,6 +166,46 @@ export async function fetchMyComplaints(): Promise<MyComplaint[]> {
     console.error('Failed to fetch my complaints:', err)
   }
   return []
+}
+
+export async function trackComplaintSecurelyApi(referenceId: string, trackingPin?: string): Promise<{ success: boolean; complaint?: TrackedComplaint; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/complaints/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify({ referenceId, trackingPin }),
+    });
+    const json = await res.json();
+    return json;
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error while tracking complaint.' };
+  }
+}
+
+export async function replyToInquiryApi(complaintId: string, inquiryId: string, message: string, attachment?: string, trackingPin?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/complaints/${complaintId}/inquiries/${inquiryId}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify({ message, attachment, trackingPin }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to send reply.' };
+  }
+}
+
+export async function confirmResolutionApi(complaintId: string, action: 'CLOSE' | 'REOPEN', feedback?: string, trackingPin?: string): Promise<{ success: boolean; status?: string; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/complaints/${complaintId}/resolution`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify({ action, feedback, trackingPin }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to process resolution confirmation.' };
+  }
 }
 
 export interface BackendScheme {
@@ -505,4 +600,19 @@ export async function uploadVerificationDocument(payload: {
     console.error('Failed to upload verification document:', err);
   }
   return null
+}
+
+/** Deletes a verification document from the backend. */
+export async function deleteVerificationDocument(docType: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/documents/${docType}`, {
+      method: 'DELETE',
+      headers: await authHeaders(),
+    });
+    const json = await res.json();
+    return json.success === true
+  } catch (err) {
+    console.error('Failed to delete verification document:', err);
+    return false
+  }
 }

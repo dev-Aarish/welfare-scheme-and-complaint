@@ -6,6 +6,7 @@ import {
   assignComplaint,
   updateComplaintStatus,
   addComplaintRemark,
+  createAdminInquiry,
   getWorkflowMeta,
   triggerManualEscalationCheck,
 } from '../controllers/adminComplaintController.js';
@@ -36,5 +37,8 @@ router.patch('/complaints/:id/status', authenticate, requireAdmin, updateComplai
 
 // POST /api/admin/complaints/:id/remarks - Add admin remark
 router.post('/complaints/:id/remarks', authenticate, requireAdmin, addComplaintRemark);
+
+// POST /api/admin/complaints/:id/inquiries - Ask citizen for more info
+router.post('/complaints/:id/inquiries', authenticate, requireAdmin, createAdminInquiry);
 
 export default router;

@@ -160,108 +160,128 @@ export function OfficerBlockMap() {
           </span>
         </div>
 
-        <div className="flex-1 rounded-xl overflow-hidden relative border border-border-subtle">
-          <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
-            <Map
-              defaultCenter={{ lat: 22.460, lng: 88.120 }}
-              defaultZoom={13.5}
-              gestureHandling={'greedy'}
-              disableDefaultUI={true}
-              styles={MAP_STYLES}
-              className="w-full h-full absolute inset-0"
-            >
-              <MapControls />
-              
-              {/* Heatmap / Density Overlays (Using Circle component) */}
-              {blockMap.wards.map((ward) => {
-                const coords = WARD_COORDINATES[ward.id]
-                if (!coords) return null;
+        <div className="flex-1 rounded-xl overflow-hidden relative border border-border-subtle min-h-[480px]">
+          {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+            <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+              <Map
+                defaultCenter={{ lat: 22.460, lng: 88.120 }}
+                defaultZoom={13.5}
+                gestureHandling={'greedy'}
+                disableDefaultUI={true}
+                styles={MAP_STYLES}
+                className="w-full h-full absolute inset-0"
+              >
+                <MapControls />
                 
-                const active = ward.incidents.filter(i => i.status !== 'Resolved').length;
-                const radius = 200 + (active * 150);
-                const color = active > 1 ? '#DD8F5C' : '#8CA89B';
-                
-                return (
-                  <Circle
-                    key={`heat-${ward.id}`}
-                    center={coords}
-                    radius={radius}
-                    fillColor={color}
-                    fillOpacity={0.15}
-                    strokeColor={color}
-                    strokeOpacity={0}
-                    strokeWeight={0}
-                    clickable={false}
-                  />
-                )
-              })}
+                {/* Heatmap / Density Overlays (Using Circle component) */}
+                {blockMap.wards.map((ward) => {
+                  const coords = WARD_COORDINATES[ward.id]
+                  if (!coords) return null;
+                  
+                  const active = ward.incidents.filter(i => i.status !== 'Resolved').length;
+                  const radius = 200 + (active * 150);
+                  const color = active > 1 ? '#DD8F5C' : '#8CA89B';
+                  
+                  return (
+                    <Circle
+                      key={`heat-${ward.id}`}
+                      center={coords}
+                      radius={radius}
+                      fillColor={color}
+                      fillOpacity={0.15}
+                      strokeColor={color}
+                      strokeOpacity={0}
+                      strokeWeight={0}
+                      clickable={false}
+                    />
+                  )
+                })}
 
-              {/* Data Points */}
-              {blockMap.wards.map((ward) => {
-                const coords = WARD_COORDINATES[ward.id]
-                if (!coords) return null;
-                
-                const isHovered = hoveredId === ward.id;
-                const isSelected = selectedId === ward.id;
-                const dominant = dominantStatus(ward);
-                const active = dominant === 'Resolved' ? false : true;
-                const color = active ? '#E38F55' : '#6FBBA6';
-                
-                return (
-                  <Marker 
-                    key={`marker-${ward.id}`} 
-                    position={coords}
-                    onClick={() => setSelectedId(ward.id)}
-                    onMouseOver={() => setHoveredId(ward.id)}
-                    onMouseOut={() => setHoveredId(null)}
-                    zIndex={isSelected ? 50 : isHovered ? 40 : 10}
-                    icon={{
-                      path: 'M 0, 0 m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
-                      fillColor: color,
-                      fillOpacity: 1,
-                      strokeColor: '#FFFFFF',
-                      strokeWeight: 2.5,
-                      scale: isSelected ? 1.25 : isHovered ? 1.1 : 1
-                    }}
-                  />
-                )
-              })}
+                {/* Data Points */}
+                {blockMap.wards.map((ward) => {
+                  const coords = WARD_COORDINATES[ward.id]
+                  if (!coords) return null;
+                  
+                  const isHovered = hoveredId === ward.id;
+                  const isSelected = selectedId === ward.id;
+                  const dominant = dominantStatus(ward);
+                  const active = dominant === 'Resolved' ? false : true;
+                  const color = active ? '#E38F55' : '#6FBBA6';
+                  
+                  return (
+                    <Marker 
+                      key={`marker-${ward.id}`} 
+                      position={coords}
+                      onClick={() => setSelectedId(ward.id)}
+                      onMouseOver={() => setHoveredId(ward.id)}
+                      onMouseOut={() => setHoveredId(null)}
+                      zIndex={isSelected ? 50 : isHovered ? 40 : 10}
+                      icon={{
+                        path: 'M 0, 0 m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
+                        fillColor: color,
+                        fillOpacity: 1,
+                        strokeColor: '#FFFFFF',
+                        strokeWeight: 2.5,
+                        scale: isSelected ? 1.25 : isHovered ? 1.1 : 1
+                      }}
+                    />
+                  )
+                })}
 
-              {/* Floating Tooltips */}
-              {blockMap.wards.map((ward) => {
-                const coords = WARD_COORDINATES[ward.id]
-                if (!coords) return null;
-                
-                const isHovered = hoveredId === ward.id;
-                const isSelected = selectedId === ward.id;
-                const dominant = dominantStatus(ward);
-                const active = dominant === 'Resolved' ? false : true;
+                {/* Floating Tooltips */}
+                {blockMap.wards.map((ward) => {
+                  const coords = WARD_COORDINATES[ward.id]
+                  if (!coords) return null;
+                  
+                  const isHovered = hoveredId === ward.id;
+                  const isSelected = selectedId === ward.id;
+                  const dominant = dominantStatus(ward);
+                  const active = dominant === 'Resolved' ? false : true;
 
-                if (!isHovered && !isSelected) return null;
+                  if (!isHovered && !isSelected) return null;
 
-                return (
-                  <InfoWindow
-                    key={`info-${ward.id}`}
-                    position={coords}
-                    headerDisabled={true}
-                    disableAutoPan={true}
-                    pixelOffset={[0, -25]}
-                    style={{ padding: 0 }}
-                  >
-                    <div className="rounded-[20px] bg-surface px-4 py-3 shadow-soft min-w-[max-content]">
-                      <p className="font-display text-sm font-semibold text-ink-900 mb-1">{ward.name}</p>
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${active ? 'bg-brand-orange' : 'bg-brand-mint'}`}></span>
-                        <span className="text-xs text-ink-400">
-                          Resolution Speed: {ward.incidents.length} cases
-                        </span>
+                  return (
+                    <InfoWindow
+                      key={`info-${ward.id}`}
+                      position={coords}
+                      headerDisabled={true}
+                      disableAutoPan={true}
+                      pixelOffset={[0, -25]}
+                      style={{ padding: 0 }}
+                    >
+                      <div className="rounded-[20px] bg-surface px-4 py-3 shadow-soft min-w-[max-content]">
+                        <p className="font-display text-sm font-semibold text-ink-900 mb-1">{ward.name}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${active ? 'bg-brand-orange' : 'bg-brand-mint'}`}></span>
+                          <span className="text-xs text-ink-400">
+                            Resolution Speed: {ward.incidents.length} cases
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </InfoWindow>
-                )
-              })}
-            </Map>
-          </APIProvider>
+                    </InfoWindow>
+                  )
+                })}
+              </Map>
+            </APIProvider>
+          ) : (
+            <div className="relative w-full h-full min-h-[480px]">
+              <iframe
+                title="Block Wards GIS Map"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                scrolling="no"
+                marginHeight={0}
+                marginWidth={0}
+                src="https://www.openstreetmap.org/export/embed.html?bbox=88.0800%2C22.4200%2C88.1600%2C22.5000&layer=mapnik"
+                className="w-full h-full absolute inset-0 border-0"
+              />
+              <div className="absolute top-4 left-4 z-10 rounded-2xl bg-surface/95 backdrop-blur-sm p-3 shadow-soft border border-border-subtle max-w-xs">
+                <p className="text-xs font-bold text-ink-900">Uluberia-I GIS Ward Map</p>
+                <p className="text-[11px] text-ink-400 mt-0.5">Click any ward in the sidebar to inspect incidents and officer assignment</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

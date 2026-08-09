@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BadgeCheck, Check, Clock3, Pencil } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { Toggle } from '../components/Toggle'
@@ -6,7 +6,7 @@ import { FamilyMembersCard } from '../components/FamilyMembersCard'
 import { ProfileEditModal, type EditField } from '../components/ProfileEditModal'
 import { profile, user, type ProfileRow } from '../data'
 import { useAuth, type LocalProfile } from '../context/AuthContext'
-import { saveHouseholdProfile } from '../services/api'
+import { fetchVerificationDocuments, saveHouseholdProfile, type VerificationDocument } from '../services/api'
 import { useReveal } from '../hooks/useReveal'
 
 const INDIAN_STATES = [
@@ -407,7 +407,39 @@ function RealProfile({
   const { reloadProfile } = useAuth()
   const [share, setShare] = useState(true)
   const [modal, setModal] = useState<null | 'personal' | 'household' | 'income'>(null)
+  const [docRows, setDocRows] = useState<VerificationDocument[]>([])
 
+  useEffect(() => {
+    let alive = true
+    fetchVerificationDocuments().then((rows) => {
+      if (alive) setDocRows(rows)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const docMetaList = [
+    { key: 'aadhaar', label: 'Aadhaar', defaultNote: 'Linked to mobile' },
+    { key: 'voter_id', label: 'Voter ID', defaultNote: 'Electoral roll 2024' },
+    { key: 'income_certificate', label: 'Income certificate', defaultNote: 'Issued by block office' },
+    { key: 'ration_card', label: 'Ration card', defaultNote: 'BPL category' },
+    { key: 'bank_passbook', label: 'Bank passbook', defaultNote: 'Upload front page' },
+    { key: 'land_record', label: 'Land record (ROR)', defaultNote: 'Block office copy' },
+  ]
+
+  const userDocs = docMetaList.map((meta) => {
+    const found = docRows.find((r) => r.docType === meta.key)
+    if (found?.status === 'VERIFIED') {
+      return { label: meta.label, status: 'Verified' as const, note: found.note || 'Verified by official records' }
+    }
+    if (found) {
+      return { label: meta.label, status: 'Pending' as const, note: found.fileName ? `Submitted (${found.fileName})` : (found.note || 'Submitted — awaiting records cross-check') }
+    }
+    return { label: meta.label, status: 'Pending' as const, note: meta.defaultNote }
+  })
+
+  const realVerifiedCount = userDocs.filter((d) => d.status === 'Verified').length
   const p = localProfile
   const income = p?.annualIncome ?? null
   const hasIncome = income !== null && income !== undefined
@@ -570,7 +602,7 @@ function RealProfile({
             />
           </div>
           <div data-reveal>
-            <DocumentsCard verified={0} total={0} items={[]} />
+            <DocumentsCard verified={realVerifiedCount} total={6} items={userDocs} />
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import complaintRoutes from './routes/complaintRoutes.js';
 import { prisma } from './config/prismaClient.js';
 import { initEscalationScheduler } from './services/escalationService.js';
+import { seedDepartments } from './seeders/departmentSeeder.js';
 
 dotenv.config();
 
@@ -29,7 +30,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/complaints', complaintRoutes);
 
@@ -37,6 +37,7 @@ async function startServer() {
   try {
     await prisma.$connect();
     console.log('✅ Connected to PostgreSQL Database via Prisma 6 ORM!');
+    await seedDepartments();
   } catch (error) {
     console.warn('⚠️ PostgreSQL Connection Warning:', error.message);
     console.warn('💡 Tip: Update DATABASE_URL in backend/.env with your local PostgreSQL password.');

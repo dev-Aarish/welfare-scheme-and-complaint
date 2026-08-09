@@ -1,5 +1,6 @@
 import {
   Bug,
+  Clock,
   Cpu,
   Database,
   FileText,
@@ -25,6 +26,7 @@ export type TabId =
   | 'schemes'
   | 'helpline'
   | 'complaints'
+  | 'track'
   | 'verification'
 
 export interface Tab {
@@ -41,6 +43,7 @@ export const tabs: Tab[] = [
   { id: 'schemes', label: 'Scheme catalog', icon: FileText },
   { id: 'helpline', label: 'Helpline', icon: Phone },
   { id: 'complaints', label: 'File complaint', icon: FileText },
+  { id: 'track', label: 'Track complaint', icon: Clock },
   { id: 'chat', label: 'Sahayak chat', icon: MessagesSquare },
   { id: 'profile', label: 'My profile', icon: UserRound },
 ]

@@ -261,11 +261,12 @@ export function AdminDashboardPage({
         {/* Detailed Breakdown Panel */}
         <div className="mt-10 rounded-3xl border border-border-subtle bg-surface-white/90 p-6 shadow-soft dark:bg-surface-white/80 md:p-8">
           <div className="flex items-center justify-between border-b border-border-subtle pb-4">
-            <h2 className="font-display text-lg font-bold text-ink-900">
-              Complaints Status Ratio Breakdown
+            <h2 className="font-display text-lg font-bold text-ink-900 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-brand-orange" />
+              <span>Complaints Status Ratio Breakdown</span>
             </h2>
             <span className="text-xs font-semibold text-ink-400">
-              {stats ? `${stats.totalComplaints} Active Records` : 'Loading...'}
+              {stats ? `${stats.totalComplaints} Active Records · ${stats.resolutionRate ?? 0}% Resolution Rate` : 'Loading...'}
             </span>
           </div>
 
@@ -281,21 +282,21 @@ export function AdminDashboardPage({
                       width: `${(stats.pendingComplaints / stats.totalComplaints) * 100}%`,
                     }}
                     className="bg-[#DD8F5C] transition-all duration-500"
-                    title={`Pending: ${stats.pendingComplaints}`}
+                    title={`Pending / Open: ${stats.pendingComplaints}`}
                   />
                   <div
                     style={{
                       width: `${(stats.inProgressComplaints / stats.totalComplaints) * 100}%`,
                     }}
                     className="bg-[#C3BC82] transition-all duration-500"
-                    title={`In Progress: ${stats.inProgressComplaints}`}
+                    title={`In Progress / Assigned: ${stats.inProgressComplaints}`}
                   />
                   <div
                     style={{
                       width: `${(stats.resolvedComplaints / stats.totalComplaints) * 100}%`,
                     }}
                     className="bg-[#8CA89B] transition-all duration-500"
-                    title={`Resolved: ${stats.resolvedComplaints}`}
+                    title={`Resolved / Closed: ${stats.resolvedComplaints}`}
                   />
                   <div
                     style={{
@@ -309,25 +310,25 @@ export function AdminDashboardPage({
                 {/* Legend List */}
                 <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <LegendItem
-                    label="Pending"
+                    label="Pending Triage"
                     count={stats.pendingComplaints}
                     total={stats.totalComplaints}
                     color="bg-[#DD8F5C]"
                   />
                   <LegendItem
-                    label="In Progress"
+                    label="Active / Assigned"
                     count={stats.inProgressComplaints}
                     total={stats.totalComplaints}
                     color="bg-[#C3BC82]"
                   />
                   <LegendItem
-                    label="Resolved"
+                    label="Resolved & Closed"
                     count={stats.resolvedComplaints}
                     total={stats.totalComplaints}
                     color="bg-[#8CA89B]"
                   />
                   <LegendItem
-                    label="Escalated"
+                    label="Escalated (Overdue)"
                     count={stats.escalatedComplaints}
                     total={stats.totalComplaints}
                     color="bg-[#A6B1D6]"
@@ -338,6 +339,120 @@ export function AdminDashboardPage({
               <p className="py-6 text-center text-sm text-ink-400">
                 No complaint statistics available at this time.
               </p>
+            )}
+          </div>
+        </div>
+
+        {/* Category Breakdown & Priority Statistics Grid */}
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+          {/* Category Analytics */}
+          <div className="rounded-3xl border border-border-subtle bg-surface-white/90 p-6 shadow-soft dark:bg-surface-white/80 md:p-8">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+              <h3 className="font-display text-base font-bold text-ink-900">
+                Departmental Category Analytics
+              </h3>
+              <span className="text-xs text-ink-400 font-medium">By Grievance Sector</span>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {stats?.categoryCounts ? (
+                Object.entries({
+                  WATER_SUPPLY: 'Water Supply & Drainage',
+                  ELECTRICITY: 'Electricity & Lighting',
+                  ROADS: 'Roads & Infrastructure',
+                  SANITATION: 'Sanitation & Waste Management',
+                  FOOD_RATION: 'Food & Civil Supplies',
+                  PUBLIC_HEALTH: 'Public Health & Education',
+                  OTHER: 'Other Concerns',
+                }).map(([key, label]) => {
+                  const count = stats.categoryCounts?.[key] || 0;
+                  const total = stats.totalComplaints || 1;
+                  const pct = Math.round((count / total) * 100);
+
+                  return (
+                    <div key={key} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold text-ink-900">
+                        <span>{label}</span>
+                        <span className="text-ink-400">{count} ({pct}%)</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-canvas">
+                        <div
+                          className="h-full bg-brand-orange transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-center text-xs text-ink-400 py-4">No category data</p>
+              )}
+            </div>
+          </div>
+
+          {/* Priority Analytics & Recent Feed */}
+          <div className="flex flex-col gap-6">
+            {/* Priority Distribution */}
+            <div className="rounded-3xl border border-border-subtle bg-surface-white/90 p-6 shadow-soft dark:bg-surface-white/80">
+              <h3 className="font-display text-base font-bold text-ink-900 mb-4 border-b border-border-subtle pb-3">
+                Priority Breakdown & Severity
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-center">
+                  <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase">High Priority</p>
+                  <p className="text-2xl font-extrabold text-ink-900 mt-1">
+                    {stats?.priorityCounts?.HIGH || 0}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">Medium Priority</p>
+                  <p className="text-2xl font-extrabold text-ink-900 mt-1">
+                    {stats?.priorityCounts?.MEDIUM || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Complaints Feed */}
+            {stats?.recentComplaints && stats.recentComplaints.length > 0 && (
+              <div className="rounded-3xl border border-border-subtle bg-surface-white/90 p-6 shadow-soft dark:bg-surface-white/80">
+                <div className="flex items-center justify-between border-b border-border-subtle pb-3 mb-4">
+                  <h3 className="font-display text-base font-bold text-ink-900">
+                    Recently Filed Grievances
+                  </h3>
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate('/admin/complaints')}
+                      className="text-xs font-bold text-brand-orange hover:underline"
+                    >
+                      View All →
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {stats.recentComplaints.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => onNavigate && onNavigate(`/admin/complaints/${item.ref || item.id}`)}
+                      className="flex items-center justify-between rounded-2xl border border-border-subtle bg-canvas/40 p-3 hover:bg-canvas/80 cursor-pointer transition-colors"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-ink-900 truncate max-w-[240px]">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-ink-400">
+                          {item.ref} · {new Date(item.createdAt).toLocaleDateString('en-IN')}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-brand-navy/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-navy dark:bg-brand-navy/30 dark:text-white uppercase">
+                        {item.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -16,6 +16,19 @@ export interface ComplaintStats {
   inProgressComplaints: number;
   resolvedComplaints: number;
   escalatedComplaints: number;
+  resolutionRate?: number;
+  categoryCounts?: Record<string, number>;
+  priorityCounts?: Record<string, number>;
+  recentComplaints?: Array<{
+    id: string;
+    ref: string;
+    title: string;
+    location?: string;
+    status: string;
+    category: string;
+    priority: string;
+    createdAt: string;
+  }>;
 }
 
 export interface DashboardResponse {
@@ -191,14 +204,31 @@ export interface StatusHistoryItem {
   createdAt: string;
 }
 
+export interface InquiryMessageItem {
+  id: string;
+  senderType: 'ADMIN' | 'CITIZEN';
+  senderName?: string;
+  message: string;
+  attachmentUrl?: string | null;
+  createdAt: string;
+}
+
+export interface InquiryItem {
+  id: string;
+  subject?: string;
+  status: 'OPEN' | 'RESOLVED' | 'CLOSED';
+  messages?: InquiryMessageItem[];
+  createdAt: string;
+}
+
 export interface ComplaintItem {
   id: string;
   ref: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  status: string;
   category: string;
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
   location: string;
   latitude?: number;
   longitude?: number;
@@ -213,6 +243,7 @@ export interface ComplaintItem {
   updatedAt: string;
   remarks?: RemarkItem[];
   statusHistory?: StatusHistoryItem[];
+  inquiries?: InquiryItem[];
 }
 
 export interface PaginationInfo {
@@ -595,6 +626,58 @@ export async function triggerEscalationCheckApi(): Promise<{
     return {
       success: false,
       error: 'Network error during escalation check execution.',
+    };
+  }
+}
+
+/**
+ * Ask Citizen for Information API call (POST /api/admin/complaints/:id/inquiries)
+ */
+export async function createAdminInquiryApi(
+  complaintId: string,
+  question: string,
+  subject?: string
+): Promise<{
+  success: boolean;
+  inquiry?: any;
+  status?: number;
+  error?: string;
+}> {
+  try {
+    const token = getAdminToken();
+    if (!token) {
+      return { success: false, status: 401, error: 'No admin token found' };
+    }
+
+    const res = await fetch(`${API_BASE_URL}/admin/complaints/${complaintId}/inquiries`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question, subject }),
+    });
+
+    const json = await res.json();
+
+    if (res.ok && json.success) {
+      return { success: true, inquiry: json.inquiry };
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      clearAdminAuth();
+    }
+
+    return {
+      success: false,
+      status: res.status,
+      error: json.error || 'Failed to send inquiry to citizen',
+    };
+  } catch (err) {
+    console.error('Error during createAdminInquiryApi call:', err);
+    return {
+      success: false,
+      error: 'Network error while sending inquiry.',
     };
   }
 }
