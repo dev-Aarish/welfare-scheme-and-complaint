@@ -10,6 +10,7 @@ import complaintRoutes from './routes/complaintRoutes.js';
 import { prisma } from './config/prismaClient.js';
 import { initEscalationScheduler } from './services/escalationService.js';
 import { seedDepartments } from './seeders/departmentSeeder.js';
+import { ensureAdminUser } from './seeders/adminSeeder.js';
 
 const app = express();
 const PORT = process.env.PORT || 5100;
@@ -54,6 +55,10 @@ async function startServer() {
     await prisma.$connect();
     console.log('✅ Connected to PostgreSQL Database via Prisma 6 ORM!');
     await seedDepartments();
+    // Bootstrap/repair the default admin credentials on every start so a
+    // freshly deployed or partially-seeded database can never lock the
+    // admin out of the portal.
+    await ensureAdminUser();
   } catch (error) {
     console.warn('⚠️ PostgreSQL Connection Warning:', error.message);
     console.warn('💡 Tip: Update DATABASE_URL in backend/.env with your local PostgreSQL password.');
