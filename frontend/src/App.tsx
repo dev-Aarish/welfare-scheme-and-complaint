@@ -340,6 +340,7 @@ function AppShell() {
             <ComplaintTrackingPage
               theme={theme}
               onToggleTheme={toggle}
+              embedded
               onNavigate={(path) => {
                 window.history.pushState(null, '', path);
                 window.dispatchEvent(new Event('popstate'));

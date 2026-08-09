@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   KeyRound,
@@ -6,25 +6,22 @@ import {
   Clock,
   Building2,
   PhoneCall,
-  MessageSquare,
   Send,
   Upload,
   AlertCircle,
   FileText,
   Copy,
   Check,
-  MapPin,
   ExternalLink,
   ChevronLeft,
   ArrowRight,
   ShieldCheck,
-  Sparkles,
-  HelpCircle,
   RefreshCw,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { DecorativeBackground } from '../components/DecorativeBackground';
+import { PageHeader } from '../components/PageHeader';
 import type { Theme } from '../hooks/useTheme';
 import {
   trackComplaintSecurelyApi,
@@ -39,6 +36,8 @@ interface ComplaintTrackingPageProps {
   onToggleTheme: () => void;
   onNavigate: (path: string) => void;
   initialRef?: string;
+  /** Rendered inside the app shell (sidebar visible) — hide the standalone header bar. */
+  embedded?: boolean;
 }
 
 const ECOMMERCE_STAGES = [
@@ -69,6 +68,7 @@ export function ComplaintTrackingPage({
   onToggleTheme,
   onNavigate,
   initialRef,
+  embedded,
 }: ComplaintTrackingPageProps) {
   // Input fields
   const [refInput, setRefInput] = useState(initialRef || '');
@@ -216,56 +216,24 @@ export function ComplaintTrackingPage({
   const stageIndex = complaint ? getStageIndex(complaint.status) : 0;
   const activeInquiry = complaint?.inquiries?.find((i) => i.status === 'OPEN');
 
-  return (
-    <div className="relative min-h-screen bg-canvas font-sans text-ink-900 selection:bg-brand-orange/20 selection:text-ink-900 pb-20">
-      <DecorativeBackground insetForSidebar={false} />
+  /* The page content is shared by both render paths. Inside the app shell
+     (embedded) it renders bare — exactly like the other citizen pages — and
+     the shell supplies the canvas background, width and padding. The
+     standalone /complaints/track route adds its own full-page shell with a
+     sticky header bar. */
+  const content = (
+    <>
+        <PageHeader
+          title="Track grievance status"
+          subtitle="Follow real-time department progress of your filed grievance using its Reference ID and Secret PIN."
+        />
 
-      {/* Header Bar */}
-      <header className="sticky top-0 z-30 border-b border-border-subtle bg-surface/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate('/')}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-canvas/60 text-ink-700 hover:bg-canvas transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <Logo />
-            <span className="hidden text-xs font-bold uppercase tracking-wider text-brand-orange sm:inline-block border-l border-border-subtle pl-3">
-              Live Grievance Tracker
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-            <button
-              onClick={() => onNavigate('/file-complaint')}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-orange to-brand-coral px-3.5 py-2 text-xs font-bold text-white shadow-soft transition-transform hover:scale-[1.02]"
-            >
-              <FileText className="h-4 w-4" />
-              <span>File New Grievance</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="mx-auto max-w-5xl px-4 pt-8 sm:px-6">
-        {/* Search Header Card */}
-        <div className="rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-sm p-6 shadow-soft md:p-8">
+        {/* Lookup Form Card */}
+        <div className="mt-6 rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft md:p-8">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange/10 px-3 py-1 text-xs font-bold text-brand-orange">
-                <Sparkles className="h-3.5 w-3.5" />
-                Step-by-Step Order Tracking
-              </span>
-              <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-                Track Municipal Grievance Status
-              </h1>
-              <p className="mt-1 text-xs text-ink-400">
-                Enter your Reference ID & 6-digit Secret PIN to view real-time department progress.
-              </p>
-            </div>
+            <h2 className="font-display text-xl font-semibold text-ink-900">
+              Look up a complaint
+            </h2>
 
             {complaint && (
               <button
@@ -294,7 +262,7 @@ export function ComplaintTrackingPage({
                 placeholder="Reference ID (e.g. SR-8K29F4)"
                 value={refInput}
                 onChange={(e) => setRefInput(e.target.value)}
-                className="w-full rounded-2xl border border-border-subtle bg-canvas/60 pl-10 pr-4 py-2.5 text-sm font-semibold text-ink-900 placeholder:text-ink-400 focus:border-brand-orange focus:outline-none"
+                className="w-full rounded-2xl border border-border-subtle bg-surface pl-10 pr-4 py-3 text-sm font-medium text-ink-900 placeholder:text-ink-400 focus:border-brand-orange focus:outline-none focus:ring-4 focus:ring-brand-orange/10"
               />
             </div>
 
@@ -306,7 +274,7 @@ export function ComplaintTrackingPage({
                 placeholder="6-Digit Secret PIN (e.g. 739421)"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                className="w-full rounded-2xl border border-border-subtle bg-canvas/60 pl-10 pr-4 py-2.5 text-sm font-semibold text-ink-900 placeholder:text-ink-400 focus:border-brand-orange focus:outline-none font-mono"
+                className="w-full rounded-2xl border border-border-subtle bg-surface pl-10 pr-4 py-3 text-sm font-medium text-ink-900 placeholder:text-ink-400 focus:border-brand-orange focus:outline-none focus:ring-4 focus:ring-brand-orange/10 font-mono"
               />
             </div>
 
@@ -314,7 +282,7 @@ export function ComplaintTrackingPage({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-full min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-2xl bg-brand-orange text-white font-bold text-xs shadow-soft hover:bg-brand-orange/90 transition-transform active:scale-95 disabled:opacity-50"
+                className="w-full h-full min-h-[42px] inline-flex items-center justify-center gap-1.5 rounded-2xl bg-brand-navy text-navy-contrast font-semibold text-sm shadow-soft hover:bg-[#2d2839] dark:hover:bg-[#d9d5cd] transition-transform active:scale-95 disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Track Now'}
               </button>
@@ -331,10 +299,10 @@ export function ComplaintTrackingPage({
 
         {/* 1-Click Filed Complaints Selection Grid */}
         {savedItems.length > 0 && (
-          <div className="mt-8 rounded-3xl border border-border-subtle bg-surface/80 backdrop-blur-sm p-6 shadow-soft md:p-8">
+          <div className="mt-8 rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft md:p-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
+                <h2 className="flex items-center gap-2 font-display text-base font-semibold text-ink-900">
                   <Clock className="h-4 w-4 text-brand-orange" />
                   <span>Your Filed Complaints (1-Click Track)</span>
                 </h2>
@@ -394,7 +362,7 @@ export function ComplaintTrackingPage({
         {complaint && (
           <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* 1. Grievance Reference Banner */}
-            <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft">
+            <div className="rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                   <div className="flex items-center gap-2">
@@ -407,7 +375,7 @@ export function ComplaintTrackingPage({
                       <span>{copied ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
-                  <h2 className="mt-1 font-display text-xl font-bold text-ink-900">{complaint.title}</h2>
+                  <h2 className="mt-1 font-display text-xl font-semibold text-ink-900">{complaint.title}</h2>
                   <p className="mt-1 text-xs text-ink-400">Filed on: {new Date(complaint.createdAt).toLocaleString()}</p>
                 </div>
 
@@ -423,8 +391,8 @@ export function ComplaintTrackingPage({
             </div>
 
             {/* 2. E-Commerce Style Step-by-Step Progress Tracker ("Dot by Dot") */}
-            <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft md:p-8">
-              <h3 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
+            <div className="rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft md:p-8">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold text-ink-900">
                 <Clock className="h-4 w-4 text-brand-orange" />
                 <span>Grievance Progress Tracker</span>
               </h3>
@@ -479,7 +447,7 @@ export function ComplaintTrackingPage({
 
             {/* 3. Action Required — Department Inquiry Card (if active) */}
             {activeInquiry && (
-              <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-soft">
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-soft">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-500 text-white font-bold">
                     !
@@ -560,7 +528,7 @@ export function ComplaintTrackingPage({
                     <button
                       onClick={() => handleSendReply(activeInquiry.id)}
                       disabled={replying || !replyText.trim()}
-                      className="inline-flex items-center gap-2 rounded-xl bg-brand-orange px-4 py-2 text-xs font-bold text-white shadow-soft hover:bg-brand-orange/90 transition-transform active:scale-95 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl bg-brand-navy px-4 py-2 text-xs font-semibold text-navy-contrast shadow-soft hover:bg-[#2d2839] dark:hover:bg-[#d9d5cd] transition-transform active:scale-95 disabled:opacity-50"
                     >
                       <Send className="h-3.5 w-3.5" />
                       <span>{replying ? 'Sending...' : 'Send Reply'}</span>
@@ -578,7 +546,7 @@ export function ComplaintTrackingPage({
 
             {/* 4. Citizen Resolution Confirmation Box (if ACTION_TAKEN or RESOLVED) */}
             {(complaint.status === 'ACTION_TAKEN' || complaint.status === 'RESOLVED') && (
-              <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 shadow-soft">
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 shadow-soft">
                 <h3 className="font-display text-base font-bold text-emerald-900 dark:text-emerald-200">
                   Was your grievance resolved to your satisfaction?
                 </h3>
@@ -625,8 +593,8 @@ export function ComplaintTrackingPage({
             {/* 5. Assigned Department Info & Audit Trail Grid */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Department Card */}
-              <div className="rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft space-y-4">
-                <h3 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
+              <div className="rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft space-y-4">
+                <h3 className="flex items-center gap-2 font-display text-base font-semibold text-ink-900">
                   <Building2 className="h-4 w-4 text-brand-orange" />
                   <span>Assigned Department</span>
                 </h3>
@@ -650,8 +618,8 @@ export function ComplaintTrackingPage({
               </div>
 
               {/* Immutable Audit History */}
-              <div className="lg:col-span-2 rounded-3xl border border-border-subtle bg-surface p-6 shadow-soft">
-                <h3 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
+              <div className="lg:col-span-2 rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft">
+                <h3 className="flex items-center gap-2 font-display text-base font-semibold text-ink-900">
                   <ShieldCheck className="h-4 w-4 text-brand-mint" />
                   <span>Official Audit Log</span>
                 </h3>
@@ -683,7 +651,47 @@ export function ComplaintTrackingPage({
             </div>
           </div>
         )}
-      </main>
+    </>
+  );
+
+  return embedded ? (
+    <div>{content}</div>
+  ) : (
+    <div className="relative min-h-screen bg-canvas font-sans text-ink-900 selection:bg-brand-orange/20 selection:text-ink-900 pb-20">
+      <DecorativeBackground insetForSidebar={false} />
+
+      {/* Header Bar — only on the standalone /complaints/track route; the app
+          shell already renders the sidebar + mobile header. */}
+      <header className="sticky top-0 z-30 border-b border-border-subtle bg-surface/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onNavigate('/')}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-canvas/60 text-ink-700 hover:bg-canvas transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <Logo />
+            <span className="hidden text-xs font-bold uppercase tracking-wider text-brand-orange sm:inline-block border-l border-border-subtle pl-3">
+              Live Grievance Tracker
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <button
+              onClick={() => onNavigate('/file-complaint')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-orange to-brand-coral px-3.5 py-2 text-xs font-bold text-white shadow-soft transition-transform hover:scale-[1.02]"
+            >
+              <FileText className="h-4 w-4" />
+              <span>File New Grievance</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="mx-auto max-w-5xl px-4 pt-8 sm:px-6">{content}</main>
     </div>
   );
 }
