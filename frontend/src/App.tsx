@@ -68,7 +68,10 @@ function AppShell() {
      it via onMatchesChange). Starts as null = "not known yet" so the hero
      shows a neutral placeholder instead of a misleading 0 or a fake number. */
   const [schemesMatched, setSchemesMatched] = useState<number | null>(null)
-  const { theme, toggle } = useTheme()
+  /* Theme system stays mounted: with the toggle buttons removed the site
+     is permanently light mode (see useTheme.getInitialTheme). The hook's
+     effect also strips any leftover `dark` class from older sessions. */
+  useTheme()
   /* Supabase session when configured; guest role when demo mode. */
   const { loading, session, role, guest, signOut, signInAsGuest } = useAuth()
   const authed = guest || session !== null
@@ -108,18 +111,6 @@ function AppShell() {
     setSelectedSchemeId(null)
   }
 
-  /* Theme crossfade (Animations.md §4 Phase 2): let colors ease for ~300ms
-     while the `dark` class flips, then remove the transitional class. */
-  const toggleTheme = () => {
-    const root = document.documentElement
-    root.classList.add('theme-fade-active')
-    window.setTimeout(
-      () => root.classList.remove('theme-fade-active'),
-      350,
-    )
-    toggle()
-  }
-
   /* Tab switches on touch devices land at the top of the new page — desktop
      (fine-pointer) behaviour is untouched. */
   useEffect(() => {
@@ -142,8 +133,6 @@ function AppShell() {
         // If already authenticated as admin, go straight to dashboard
         return (
           <AdminDashboardPage
-            theme={theme}
-            onToggleTheme={toggleTheme}
             onNavigate={navigate}
             onLogout={handleAdminLogout}
           />
@@ -151,8 +140,6 @@ function AppShell() {
       }
       return (
         <AdminLoginPage
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onSuccess={() => navigate('/admin/dashboard')}
         />
       )
@@ -162,8 +149,6 @@ function AppShell() {
     if (!hasAdminToken) {
       return (
         <AdminLoginPage
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onSuccess={() => navigate(currentPath.startsWith('/admin/complaints') ? currentPath : '/admin/dashboard')}
         />
       )
@@ -172,8 +157,6 @@ function AppShell() {
     if (currentPath === '/admin/complaints') {
       return (
         <AdminComplaintsPage
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onNavigate={navigate}
           onLogout={handleAdminLogout}
         />
@@ -185,8 +168,6 @@ function AppShell() {
       return (
         <AdminComplaintDetailPage
           complaintId={complaintId}
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onNavigate={navigate}
           onLogout={handleAdminLogout}
         />
@@ -195,8 +176,6 @@ function AppShell() {
 
     return (
       <AdminDashboardPage
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onNavigate={navigate}
         onLogout={handleAdminLogout}
       />
@@ -209,8 +188,6 @@ function AppShell() {
     const refParam = queryParams.get('ref') || undefined;
     return (
       <ComplaintTrackingPage
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onNavigate={navigate}
         initialRef={refParam}
       />
@@ -230,8 +207,6 @@ function AppShell() {
   if (currentPath === '/file-complaint') {
     return (
       <AnonymousComplaintPage
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onBack={() => navigate('/')}
       />
     )
@@ -243,8 +218,6 @@ function AppShell() {
       <div className="min-h-screen bg-canvas font-sans text-ink-900">
         <DecorativeBackground insetForSidebar={false} />
         <LandingPage
-          theme={theme}
-          onToggleTheme={toggleTheme}
           onGetStarted={() => navigate('/login')}
           onGuestDemo={() => signInAsGuest('citizen')}
           onAnonComplaint={() => navigate('/file-complaint')}
@@ -258,10 +231,7 @@ function AppShell() {
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink-900">
       <DecorativeBackground insetForSidebar={false} />
-      <AuthPage
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      <AuthPage />
     </div>
   )
 }
@@ -270,12 +240,10 @@ function AppShell() {
     <div className="min-h-screen bg-canvas font-sans text-ink-900">
       <DecorativeBackground />
 
-      <MobileHeader theme={theme} onToggleTheme={toggleTheme} role={role} />
+      <MobileHeader role={role} />
       <Sidebar
         active={tab}
         onSelect={handleTabSelect}
-        theme={theme}
-        onToggleTheme={toggleTheme}
         onSignOut={handleSignOut}
         role={role}
       />
@@ -356,8 +324,6 @@ function AppShell() {
           )}
           {tab === 'track' && (
             <ComplaintTrackingPage
-              theme={theme}
-              onToggleTheme={toggle}
               embedded
               onNavigate={(path) => {
                 window.history.pushState(null, '', path);

@@ -2,16 +2,12 @@ import { ChevronDown, ChevronRight, LogOut, ShieldCheck } from 'lucide-react'
 import { tabs, type Tab, type TabId } from '../data'
 import { useAuth } from '../context/AuthContext'
 import type { Role } from '../pages/auth/copy'
-import type { Theme } from '../hooks/useTheme'
 import { useNavPillSettle } from '../hooks/useNavPillSettle'
 import { Logo } from './Logo'
-import { ThemeToggle } from './ThemeToggle'
 
 interface SidebarProps {
   active: TabId
   onSelect: (id: TabId) => void
-  theme: Theme
-  onToggleTheme: () => void
   onSignOut: () => void
   role: Role
 }
@@ -19,8 +15,6 @@ interface SidebarProps {
 export function Sidebar({
   active,
   onSelect,
-  theme,
-  onToggleTheme,
   onSignOut,
   role,
 }: SidebarProps) {
@@ -36,7 +30,6 @@ export function Sidebar({
     >
       <div className="flex items-center justify-between">
         <Logo />
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
       {/* User chip — opens the My profile tab */}

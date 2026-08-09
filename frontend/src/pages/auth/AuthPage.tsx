@@ -13,16 +13,10 @@ import {
   UserRound,
 } from 'lucide-react'
 import { Logo } from '../../components/Logo'
-import { ThemeToggle } from '../../components/ThemeToggle'
-import type { Theme } from '../../hooks/useTheme'
 import { useAuth } from '../../context/AuthContext'
 import { gsap, useGSAP, pressChip } from '../../lib/animations'
 import { copy, LANGS, type Lang, type Mode, type Role } from './copy'
 
-interface AuthPageProps {
-  theme: Theme
-  onToggleTheme: () => void
-}
 
 const OTP_MIN = 6
 const OTP_MAX = 8
@@ -68,7 +62,7 @@ const primaryBtn =
 const orangeLink =
   'text-[13px] font-semibold text-[#b06a34] transition-colors duration-150 hover:text-ink-900 dark:text-[#f0a468]'
 
-export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
+export function AuthPage() {
   const { sendOtp, verifyOtp, resendOtp, officerSignIn, signInAsGuest } = useAuth()
   /* English by default; the audience can switch to Bengali or Hindi. */
   const [lang, setLang] = useState<Lang>('en')
@@ -260,7 +254,6 @@ export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
           <ShieldCheck className="h-4 w-4 text-brand-orange" />
           <span>Admin Login</span>
         </button>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
       <div className="w-full max-w-[1000px]">

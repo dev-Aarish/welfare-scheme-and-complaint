@@ -11,9 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { Logo } from '../components/Logo'
-import { ThemeToggle } from '../components/ThemeToggle'
 import { ILLUSTRATIONS } from '../components/illustrations'
-import type { Theme } from '../hooks/useTheme'
 import { gsap, prefersReducedMotion, useGSAP } from '../lib/animations'
 import { useReveal } from '../hooks/useReveal'
 import { complaints } from '../data'
@@ -27,8 +25,6 @@ import { complaints } from '../data'
    ──────────────────────────────────────────────────────────── */
 
 interface LandingPageProps {
-  theme: Theme
-  onToggleTheme: () => void
   onGetStarted: () => void
   onGuestDemo: () => void
   onAnonComplaint: () => void
@@ -202,8 +198,6 @@ function SectionHeader({
 /* ── Page ──────────────────────────────────────────────────── */
 
 export function LandingPage({
-  theme,
-  onToggleTheme,
   onGetStarted,
   onGuestDemo,
   onAnonComplaint,
@@ -252,7 +246,6 @@ export function LandingPage({
               <ShieldCheck className="h-4 w-4 text-brand-orange" />
               Officer desk
             </button>
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             <button
               onClick={onGetStarted}
               className="hidden rounded-full bg-brand-navy px-5 py-2.5 text-[13px] font-semibold text-navy-contrast shadow-soft transition-colors duration-150 hover:bg-[#2d2839] focus-visible:outline-2 focus-visible:outline-brand-orange dark:hover:bg-[#d9d5cd] md:block"

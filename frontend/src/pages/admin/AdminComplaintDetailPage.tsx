@@ -23,11 +23,9 @@ import {
   LogOut
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
 import { AdminDemoButton } from '../../components/AdminDemoButton';
 import { APIProvider, Map, Marker, Circle } from '@vis.gl/react-google-maps';
-import type { Theme } from '../../hooks/useTheme';
 import { API_BASE_URL } from '../../services/api';
 import {
   fetchAdminComplaintById,
@@ -54,8 +52,6 @@ function formatMediaUrl(url?: string | null): string {
 
 interface AdminComplaintDetailPageProps {
   complaintId: string;
-  theme: Theme;
-  onToggleTheme: () => void;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 }
@@ -95,8 +91,6 @@ const WORKFLOW_STATUSES = [
 
 export function AdminComplaintDetailPage({
   complaintId,
-  theme,
-  onToggleTheme,
   onNavigate,
   onLogout,
 }: AdminComplaintDetailPageProps) {
@@ -389,8 +383,6 @@ export function AdminComplaintDetailPage({
               <ShieldCheck className="h-3.5 w-3.5" />
               {adminUser?.name || 'System Admin'}
             </span>
-
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
             <button
               type="button"
