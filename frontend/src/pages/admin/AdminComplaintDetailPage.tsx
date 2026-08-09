@@ -26,6 +26,7 @@ import { Logo } from '../../components/Logo';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
 import { AdminDemoButton } from '../../components/AdminDemoButton';
+import { APIProvider, Map, Marker, Circle } from '@vis.gl/react-google-maps';
 import type { Theme } from '../../hooks/useTheme';
 import {
   fetchAdminComplaintById,
@@ -48,6 +49,23 @@ interface AdminComplaintDetailPageProps {
   onNavigate: (path: string) => void;
   onLogout: () => void;
 }
+
+const MAP_STYLES = [
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#8a837b' }] },
+  { featureType: 'administrative', elementType: 'labels.text.stroke', stylers: [{ color: '#dedbd3' }, { weight: 3 }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c3c9c0' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#97a193' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#dedbd3' }] },
+  { featureType: 'landscape.natural.terrain', elementType: 'geometry', stylers: [{ color: '#d5d1c8' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#d5d1c8' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#a3a099' }, { weight: 1 }] },
+  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#8b8882' }, { weight: 1.5 }] }
+];
 
 const WORKFLOW_STATUSES = [
   { value: 'OPEN', label: 'Open' },
@@ -477,25 +495,47 @@ export function AdminComplaintDetailPage({
 
                   {/* Interactive Map Visual */}
                   <div className="mt-4 relative h-60 w-full overflow-hidden rounded-2xl border border-border-subtle bg-canvas/80 flex items-center justify-center">
-                    <svg className="absolute inset-0 h-full w-full opacity-30 text-brand-navy dark:text-brand-mint" fill="none" stroke="currentColor">
-                      <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                        <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                      </pattern>
-                      <rect width="100%" height="100%" fill="url(#grid)" />
-                    </svg>
-                    <div className="relative z-10 flex flex-col items-center justify-center text-center p-6">
-                      <div className="relative mb-2">
-                        <div className="absolute -inset-2 animate-ping rounded-full bg-brand-orange/40" />
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange text-white shadow-soft">
-                          <MapPin className="h-5 w-5" />
-                        </div>
-                      </div>
-                      <p className="text-xs font-bold text-ink-900">{complaint.location}</p>
+                    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
+                      <Map
+                        defaultCenter={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                        defaultZoom={15}
+                        gestureHandling={'greedy'}
+                        disableDefaultUI={true}
+                        styles={MAP_STYLES}
+                        className="w-full h-full absolute inset-0"
+                      >
+                        <Circle
+                          center={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                          radius={60}
+                          fillColor="#E38F55"
+                          fillOpacity={0.25}
+                          strokeColor="#E38F55"
+                          strokeOpacity={0}
+                          strokeWeight={0}
+                          clickable={false}
+                        />
+                        <Marker 
+                          position={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                          icon={{
+                            path: 'M 0, 0 m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
+                            fillColor: '#E38F55',
+                            fillOpacity: 1,
+                            strokeColor: '#FFFFFF',
+                            strokeWeight: 4,
+                            scale: 1.5
+                          }}
+                        />
+                      </Map>
+                    </APIProvider>
+                    
+                    {/* Overlay info */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center justify-center text-center p-3 rounded-2xl bg-surface/90 backdrop-blur-sm shadow-soft border border-border-subtle">
+                      <p className="text-[11px] font-bold text-ink-900">{complaint.location}</p>
                       <a
                         href={`https://maps.google.com/?q=${complaint.latitude ?? 22.4831},${complaint.longitude ?? 88.1092}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand-orange hover:underline"
+                        className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-brand-orange hover:underline"
                       >
                         <span>Open in Google Maps</span>
                         <ExternalLink className="h-3 w-3" />
