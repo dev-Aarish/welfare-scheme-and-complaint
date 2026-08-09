@@ -12,6 +12,9 @@
   --color-canvas: #eae7e0;
   --color-canvas-alt: #dedbd3;
   --color-surface: #ffffff;
+  /* Card containers on tinted canvases — same white in light mode; a
+     deepened card tone in dark mode (design.md §2/§12). */
+  --color-surface-white: #ffffff;
   --color-ink-900: #201c2a;
   --color-ink-700: #3a3644;
   --color-ink-400: #8a8790;
@@ -93,6 +96,7 @@
     --color-canvas: #16151b;
     --color-canvas-alt: #1d1c24;
     --color-surface: #211f29;
+    --color-surface-white: #211f29;
     --color-ink-900: #f2f0ec;
     --color-ink-700: #c9c6d1;
     --color-ink-400: #8b8893;
