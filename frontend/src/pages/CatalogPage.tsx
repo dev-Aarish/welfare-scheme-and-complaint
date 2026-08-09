@@ -80,7 +80,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>('All')
 
-  // Exact myScheme Sidebar Filter States
+  // Filter Panel filter states
   const [stateUt, setStateUt] = useState<string>('all')
   const [genderFilter, setGenderFilter] = useState<string>('all')
   const [ageGroup, setAgeGroup] = useState<string>('all')
@@ -165,7 +165,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
     }
   }, [category, query])
 
-  // 3. Multi-field Filtering based on Left Sidebar Filters
+  // 3. Multi-field Filtering based on the Filter Panel selections
   useEffect(() => {
     let filtered = [...allFetchedSchemes]
 
@@ -452,10 +452,10 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
         }
       />
 
-      {/* Main Layout: Left Filter Sidebar (Exact myScheme Layout) + Right Catalog Content */}
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start max-md:mt-4">
-        {/* Left Filter Sidebar */}
-        <aside className="w-full shrink-0 rounded-2xl border border-border-subtle bg-surface p-5 shadow-soft lg:w-72">
+      {/* Main Layout: full-width Filter panel on top + catalog content below */}
+      <div className="mt-6 flex flex-col gap-6 max-md:mt-4">
+        {/* Filter Panel */}
+        <section className="w-full rounded-2xl border border-border-subtle bg-surface p-5 shadow-soft max-md:p-4">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border-subtle/80 pb-3">
             <h3 className="font-display text-base font-bold text-[#1f2b5b] dark:text-white">
@@ -469,7 +469,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </button>
           </div>
 
-          <div className="mt-4 space-y-4 text-xs">
+          <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 text-xs sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {/* 1. State/UT */}
             <div>
               <label className="block font-bold text-ink-900 mb-1.5">State/UT</label>
@@ -490,7 +490,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 2. Gender Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenGender(!openGender)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -517,7 +517,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 3. Age */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <label className="block font-bold text-ink-900 mb-1.5">Age</label>
               <div className="relative">
                 <select
@@ -535,7 +535,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 4. Caste Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenCaste(!openCaste)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -562,7 +562,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 5. Residence Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenResidence(!openResidence)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -589,7 +589,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 6. Benefit Type Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenBenefitType(!openBenefitType)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -622,7 +622,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 7. Marital Status Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenMarital(!openMarital)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -649,7 +649,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 8. Disability Percentage */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <label className="block font-bold text-ink-900 mb-1.5">Disability Percentage</label>
               <div className="relative">
                 <select
@@ -666,7 +666,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 9. Employment Status Accordion */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <div
                 onClick={() => setOpenEmpStatus(!openEmpStatus)}
                 className="flex cursor-pointer items-center justify-between font-bold text-ink-900"
@@ -693,7 +693,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 10. Occupation */}
-            <div className="border-t border-border-subtle/70 pt-3">
+            <div>
               <label className="block font-bold text-ink-900 mb-1.5">Occupation</label>
               <div className="relative">
                 <select
@@ -712,7 +712,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             </div>
 
             {/* 11. Checkbox Items with Live Synchronized Counts */}
-            <div className="border-t border-border-subtle/70 pt-4 space-y-2.5">
+            <div className="flex flex-wrap gap-x-6 gap-y-2.5 sm:col-span-2 lg:col-span-2 xl:col-span-2">
               {[
                 { label: 'Minority', count: countMinority, state: cbMinority, setter: setCbMinority },
                 { label: 'Differently Abled', count: countDiffAbled, state: cbDifferentlyAbled, setter: setCbDifferentlyAbled },
@@ -722,25 +722,23 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
                 { label: 'Government Employee', count: countGovtEmp, state: cbGovtEmployee, setter: setCbGovtEmployee },
                 { label: 'Student', count: countStudent, state: cbStudent, setter: setCbStudent },
               ].map((item) => (
-                <label key={item.label} className="flex items-center justify-between cursor-pointer text-ink-800 font-medium">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={item.state}
-                      onChange={(e) => { item.setter(e.target.checked); setPage(1); }}
-                      className="rounded border-border-subtle text-brand-orange focus:ring-brand-orange"
-                    />
-                    <span>{item.label}</span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-ink-400">{item.count}</span>
+                <label key={item.label} className="flex cursor-pointer items-center gap-2 rounded-full bg-canvas/60 px-3 py-1.5 font-medium text-ink-800 transition-colors duration-150 hover:bg-canvas">
+                  <input
+                    type="checkbox"
+                    checked={item.state}
+                    onChange={(e) => { item.setter(e.target.checked); setPage(1); }}
+                    className="rounded border-border-subtle text-brand-orange focus:ring-brand-orange"
+                  />
+                  <span>{item.label}</span>
+                  <span className="text-[10px] font-semibold text-ink-400">{item.count}</span>
                 </label>
               ))}
             </div>
           </div>
-        </aside>
+        </section>
 
-        {/* Right Main Catalog Content */}
-        <div className="min-w-0 flex-1">
+        {/* Catalog Content */}
+        <div className="min-w-0">
           {/* Search Bar */}
           <div className="search-pulse flex items-center gap-2 rounded-[20px] border border-border-subtle bg-surface p-1.5 shadow-soft">
             <Search
@@ -793,7 +791,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
           {/* Schemes Grid */}
           <div
             ref={scope}
-            className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 max-md:mt-3 max-md:gap-3"
+            className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 max-md:mt-3 max-md:gap-3"
           >
             {schemes.map((scheme) =>
               isOfficer ? (
