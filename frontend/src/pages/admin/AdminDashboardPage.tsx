@@ -11,10 +11,8 @@ import {
   User,
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
 import { AdminDemoButton } from '../../components/AdminDemoButton';
-import type { Theme } from '../../hooks/useTheme';
 import {
   clearAdminAuth,
   fetchAdminDashboardStats,
@@ -24,15 +22,11 @@ import {
 } from '../../api/adminApi';
 
 interface AdminDashboardPageProps {
-  theme: Theme;
-  onToggleTheme: () => void;
   onLogout: () => void;
   onNavigate?: (path: string) => void;
 }
 
 export function AdminDashboardPage({
-  theme,
-  onToggleTheme,
   onLogout,
   onNavigate,
 }: AdminDashboardPageProps) {
@@ -141,9 +135,6 @@ export function AdminDashboardPage({
                 className={`h-4 w-4 ${refreshing ? 'animate-spin text-brand-orange' : ''}`}
               />
             </button>
-
-            {/* Theme Toggle */}
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
             {/* Logout Button */}
             <button

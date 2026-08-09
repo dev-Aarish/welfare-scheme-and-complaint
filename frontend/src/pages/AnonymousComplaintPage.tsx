@@ -1,23 +1,15 @@
 import { ArrowLeft } from 'lucide-react'
 import { DecorativeBackground } from '../components/DecorativeBackground'
 import { Logo } from '../components/Logo'
-import { ThemeToggle } from '../components/ThemeToggle'
-import type { Theme } from '../hooks/useTheme'
 import { FileComplaintPage } from './FileComplaintPage'
 
 interface AnonymousComplaintPageProps {
-  theme: Theme
-  onToggleTheme: () => void
   onBack: () => void
 }
 
 /* Public page for signed-out visitors: same form as the citizen flow, but
    filed with no account attached — identity stays anonymous. */
-export function AnonymousComplaintPage({
-  theme,
-  onToggleTheme,
-  onBack,
-}: AnonymousComplaintPageProps) {
+export function AnonymousComplaintPage({ onBack }: AnonymousComplaintPageProps) {
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink-900">
       <DecorativeBackground insetForSidebar={false} />
@@ -35,7 +27,6 @@ export function AnonymousComplaintPage({
             </button>
             <Logo />
           </div>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </header>
 

@@ -5,14 +5,10 @@ export type Theme = 'light' | 'dark'
 const STORAGE_KEY = 'sevanest-theme'
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'light'
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    /* Default is light; dark only when the user explicitly chose it. */
-    return stored === 'dark' ? 'dark' : 'light'
-  } catch {
-    return 'light'
-  }
+  /* Theme toggles have been removed — SevaNest is permanently light mode.
+     Dark-mode support stays intact in this hook and the stylesheets; only
+     the default is pinned here, so it can be re-enabled in one line. */
+  return 'light'
 }
 
 /**

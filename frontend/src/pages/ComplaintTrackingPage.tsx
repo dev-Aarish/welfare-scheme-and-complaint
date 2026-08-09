@@ -19,10 +19,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { DecorativeBackground } from '../components/DecorativeBackground';
 import { PageHeader } from '../components/PageHeader';
-import type { Theme } from '../hooks/useTheme';
 import {
   trackComplaintSecurelyApi,
   replyToInquiryApi,
@@ -32,8 +30,6 @@ import {
 } from '../services/api';
 
 interface ComplaintTrackingPageProps {
-  theme: Theme;
-  onToggleTheme: () => void;
   onNavigate: (path: string) => void;
   initialRef?: string;
   /** Rendered inside the app shell (sidebar visible) — hide the standalone header bar. */
@@ -64,8 +60,6 @@ function getStageIndex(status: string): number {
 }
 
 export function ComplaintTrackingPage({
-  theme,
-  onToggleTheme,
   onNavigate,
   initialRef,
   embedded,
@@ -678,7 +672,6 @@ export function ComplaintTrackingPage({
           </div>
 
           <div className="flex items-center gap-3">
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             <button
               onClick={() => onNavigate('/file-complaint')}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-orange to-brand-coral px-3.5 py-2 text-xs font-bold text-white shadow-soft transition-transform hover:scale-[1.02]"

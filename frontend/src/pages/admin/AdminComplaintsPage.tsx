@@ -17,10 +17,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
 import { AdminDemoButton } from '../../components/AdminDemoButton';
-import type { Theme } from '../../hooks/useTheme';
 import {
   fetchAdminComplaints,
   triggerEscalationCheckApi,
@@ -32,8 +30,6 @@ import {
 } from '../../api/adminApi';
 
 interface AdminComplaintsPageProps {
-  theme: Theme;
-  onToggleTheme: () => void;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 }
@@ -69,8 +65,6 @@ const STATUSES = [
 ];
 
 export function AdminComplaintsPage({
-  theme,
-  onToggleTheme,
   onNavigate,
   onLogout,
 }: AdminComplaintsPageProps) {
@@ -316,8 +310,6 @@ export function AdminComplaintsPage({
               <ShieldCheck className="h-3.5 w-3.5" />
               {adminUser?.name || 'System Admin'}
             </span>
-
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
             <button
               type="button"

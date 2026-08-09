@@ -1,18 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Logo } from '../../components/Logo';
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { DecorativeBackground } from '../../components/DecorativeBackground';
-import type { Theme } from '../../hooks/useTheme';
 import { adminLoginApi } from '../../api/adminApi';
 
 interface AdminLoginPageProps {
-  theme: Theme;
-  onToggleTheme: () => void;
   onSuccess: () => void;
 }
 
-export function AdminLoginPage({ theme, onToggleTheme, onSuccess }: AdminLoginPageProps) {
+export function AdminLoginPage({ onSuccess }: AdminLoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -65,7 +61,6 @@ export function AdminLoginPage({ theme, onToggleTheme, onSuccess }: AdminLoginPa
             <ShieldCheck className="h-3.5 w-3.5" />
             Official Portal
           </span>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </header>
 

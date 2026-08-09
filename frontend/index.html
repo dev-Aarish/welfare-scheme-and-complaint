@@ -14,13 +14,12 @@
     <title>SevaNest — Welfare schemes &amp; grievance redressal</title>
     <script>
       ;(function () {
+        /* Theme toggles have been removed — the site is permanently light
+           mode. Clear any stale dark state from earlier sessions so there
+           is no flash of dark mode before React mounts. */
         try {
-          var stored = localStorage.getItem('sevanest-theme')
-          /* Default is light; dark only when the user explicitly chose it. */
-          if (stored === 'dark') {
-            document.documentElement.classList.add('dark')
-            document.documentElement.style.colorScheme = 'dark'
-          }
+          document.documentElement.classList.remove('dark')
+          document.documentElement.style.colorScheme = 'light'
         } catch (e) {}
       })()
     </script>

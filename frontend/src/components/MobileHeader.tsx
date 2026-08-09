@@ -1,18 +1,14 @@
 import type { Role } from '../pages/auth/copy'
 import { useAuth } from '../context/AuthContext'
-import type { Theme } from '../hooks/useTheme'
-import { ThemeToggle } from './ThemeToggle'
 
 interface MobileHeaderProps {
-  theme: Theme
-  onToggleTheme: () => void
   role: Role
 }
 
 /* Mobile plan §4: the top bar is minimal — location + greeting left, one or
    two utility icons right. No logo wordmark on repeat visits (it lives on
    the auth screen only); the bottom tab bar replaces the old pill row. */
-export function MobileHeader({ theme, onToggleTheme, role }: MobileHeaderProps) {
+export function MobileHeader({ role }: MobileHeaderProps) {
   const isOfficer = role === 'officer'
   const { identity } = useAuth()
   const firstName = identity.firstName
@@ -28,9 +24,7 @@ export function MobileHeader({ theme, onToggleTheme, role }: MobileHeaderProps) 
             {isOfficer ? `Good morning, Officer ${firstName}` : `Hi, ${firstName}`}
           </h1>
         </div>
-        <div className="flex shrink-0 items-center">
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        </div>
+
       </div>
     </header>
   )
