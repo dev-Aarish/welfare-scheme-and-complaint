@@ -19,9 +19,17 @@ import { findSchemes } from '../models/schemeModel.js';
 /* ── Language instruction ────────────────────────────────── */
 
 const LANGUAGE_INSTRUCTIONS = {
-  bn: 'Reply in Bengali (বাংলা) unless the user writes in another language. Use simple, warm, respectful, citizen-friendly Bengali. Numbers can stay in Arabic numerals.',
-  hi: 'Reply in Hindi (हिन्दी) unless the user writes in another language. Use simple, warm, respectful, citizen-friendly Hindi.',
-  en: 'Reply in English unless the user writes in another language. Use simple, warm, respectful, citizen-friendly English.',
+  en: 'CRITICAL MANDATE: You MUST reply strictly in English. Do NOT use Bengali, Hindi, or any other language, even if previous history contains text in another language.',
+  hi: 'CRITICAL MANDATE: You MUST reply strictly in Hindi (हिन्दी). Do NOT use English or Bengali.',
+  bn: 'CRITICAL MANDATE: You MUST reply strictly in Bengali (বাংলা). Do NOT use English or Hindi.',
+  ta: 'CRITICAL MANDATE: You MUST reply strictly in Tamil (தமிழ்).',
+  te: 'CRITICAL MANDATE: You MUST reply strictly in Telugu (తెలుగు).',
+  mr: 'CRITICAL MANDATE: You MUST reply strictly in Marathi (मराठी).',
+  gu: 'CRITICAL MANDATE: You MUST reply strictly in Gujarati (ગુજરાતી).',
+  kn: 'CRITICAL MANDATE: You MUST reply strictly in Kannada (ಕನ್ನಡ).',
+  ml: 'CRITICAL MANDATE: You MUST reply strictly in Malayalam (മലയാളം).',
+  pa: 'CRITICAL MANDATE: You MUST reply strictly in Punjabi (ਪੰਜਾਬੀ).',
+  or: 'CRITICAL MANDATE: You MUST reply strictly in Odia (ଓଡ଼ିଆ).',
 };
 
 /* ── Static knowledge about the portal ───────────────────── */

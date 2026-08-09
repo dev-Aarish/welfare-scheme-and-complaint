@@ -280,17 +280,28 @@ export interface AiMatchResponse {
   }>;
 }
 
+const categoriesClientCache: { data: string[] | null; at: number } = { data: null, at: 0 };
+const schemesClientCache = new Map<string, { result: FetchSchemesResult; at: number }>();
+const CLIENT_CACHE_TTL = 3 * 60 * 1000; // 3 mins
+
 export async function fetchCategories(): Promise<string[]> {
+  const now = Date.now();
+  if (categoriesClientCache.data && (now - categoriesClientCache.at < CLIENT_CACHE_TTL)) {
+    return categoriesClientCache.data;
+  }
+
   try {
     const res = await fetch(`${API_BASE_URL}/schemes/categories`);
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
+      categoriesClientCache.data = json.data;
+      categoriesClientCache.at = now;
       return json.data;
     }
   } catch (err) {
     console.error('Failed to fetch scheme categories:', err);
   }
-  return [];
+  return categoriesClientCache.data || [];
 }
 
 export async function fetchSchemes(params?: {
@@ -299,6 +310,14 @@ export async function fetchSchemes(params?: {
   page?: number;
   limit?: number;
 }): Promise<FetchSchemesResult> {
+  const cacheKey = `${params?.category || ''}_${params?.search || ''}_${params?.page || 1}_${params?.limit || 20}`;
+  const now = Date.now();
+
+  const cached = schemesClientCache.get(cacheKey);
+  if (cached && (now - cached.at < CLIENT_CACHE_TTL)) {
+    return cached.result;
+  }
+
   try {
     const query = new URLSearchParams();
     if (params?.category) query.append('category', params.category);
@@ -311,18 +330,20 @@ export async function fetchSchemes(params?: {
     const json = await res.json();
 
     if (json.success && Array.isArray(json.data)) {
-      return {
+      const resultObj = {
         schemes: json.data,
         count: json.count || json.data.length,
         page: json.page || 1,
         totalPages: json.totalPages || 1,
       };
+      schemesClientCache.set(cacheKey, { result: resultObj, at: now });
+      return resultObj;
     }
   } catch (err) {
     console.error('Failed to fetch schemes:', err);
   }
 
-  return { schemes: [], count: 0, page: 1, totalPages: 1 };
+  return cached ? cached.result : { schemes: [], count: 0, page: 1, totalPages: 1 };
 }
 
 export async function fetchFamilyMembers(userId?: string): Promise<FamilyMemberData[]> {

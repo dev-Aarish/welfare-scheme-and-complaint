@@ -33,22 +33,6 @@ const LANG_NAMES: Record<string, string> = {
   en: 'English',
 }
 
-const citizenInitialMessages: ChatMessage[] = [
-  {
-    id: 1,
-    role: 'bot',
-    text: 'নমস্কার, Asha! 🙏 I\u2019m Sahayak — your welfare assistant. Ask me anything in Bengali, Hindi or English, by text or voice.',
-  },
-]
-
-const officerInitialMessages: ChatMessage[] = [
-  {
-    id: 1,
-    role: 'bot',
-    text: officerIntroMessages.bn,
-  },
-]
-
 /* ── Conversation persistence (localStorage, keyed per user + role) ────────
    Keeps the chat across refreshes and re-visits. Stored only in the user's
    own browser — never uploaded. Keyed by role + user id so guest demo chats
@@ -91,26 +75,16 @@ function maxMessageId(messages: ChatMessage[]): number {
 export function ChatPage({ role }: { role: Role }) {
   const isOfficer = role === 'officer'
   const { guest, identity, profile, user } = useAuth()
-  const [language, setLanguage] = useState('bn')
+  const [language, setLanguage] = useState('en')
   const storageKey = chatStorageKey(role, guest, user?.id)
   const [restored] = useState<ChatMessage[] | null>(() => loadChatHistory(storageKey))
 
   /* Greeting for a fresh conversation — personalised for real users. */
   const buildInitialMessages = (): ChatMessage[] => {
-    if (!isOfficer) {
-      return guest
-        ? citizenInitialMessages
-        : citizenInitialMessages.map((m) => ({
-            ...m,
-            text: m.text.replace('Asha', identity.firstName),
-          }))
-    }
-    return guest
-      ? officerInitialMessages
-      : officerInitialMessages.map((m) => ({
-          ...m,
-          text: m.text.replace('Rajiv', identity.firstName),
-        }))
+    const text = isOfficer ? (officerIntroMessages['en'] || officerIntroMessages.en) : (introMessages['en'] || introMessages.en)
+    const name = guest ? (isOfficer ? 'Rajiv' : 'Asha') : identity.firstName
+    const personalized = guest ? text : text.replace(isOfficer ? 'Rajiv' : 'Asha', name)
+    return [{ id: 1, role: 'bot', text: personalized }]
   }
 
   const [messages, setMessages] = useState<ChatMessage[]>(
@@ -332,10 +306,12 @@ export function ChatPage({ role }: { role: Role }) {
   const switchLanguage = (id: string) => {
     if (id === language) return
     setLanguage(id)
-    append({
+    const freshMsg: ChatMessage = {
+      id: idRef.current++,
       role: 'bot',
       text: introFor(id),
-    })
+    }
+    setMessages([freshMsg])
   }
 
   /* ── Voice input ─────────────────────────────────────────
@@ -520,7 +496,20 @@ export function ChatPage({ role }: { role: Role }) {
       return
     }
     const recognition = new SpeechRecognitionCtor()
-    recognition.lang = language === 'bn' ? 'bn-IN' : language === 'hi' ? 'hi-IN' : 'en-IN'
+    const LANG_REC_MAP: Record<string, string> = {
+      bn: 'bn-IN',
+      hi: 'hi-IN',
+      en: 'en-IN',
+      ta: 'ta-IN',
+      te: 'te-IN',
+      mr: 'mr-IN',
+      gu: 'gu-IN',
+      kn: 'kn-IN',
+      ml: 'ml-IN',
+      pa: 'pa-IN',
+      or: 'or-IN',
+    }
+    recognition.lang = LANG_REC_MAP[language] || 'en-IN'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setVoiceStatus('listening')
@@ -533,7 +522,7 @@ export function ChatPage({ role }: { role: Role }) {
         // recognition already ended
       }
     }
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const text = event.results?.[0]?.[0]?.transcript?.trim()
       setVoiceStatus('idle')
       if (text) {

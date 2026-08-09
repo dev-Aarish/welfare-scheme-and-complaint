@@ -616,12 +616,28 @@ export const languages: Language[] = [
   { id: 'bn', label: 'বাংলা' },
   { id: 'hi', label: 'हिन्दी' },
   { id: 'en', label: 'English' },
+  { id: 'ta', label: 'தமிழ்' },
+  { id: 'te', label: 'తెలుగు' },
+  { id: 'mr', label: 'मराठी' },
+  { id: 'gu', label: 'ગુજરાતી' },
+  { id: 'kn', label: 'ಕನ್ನಡ' },
+  { id: 'ml', label: 'മലയാളം' },
+  { id: 'pa', label: 'ਪੰਜਾਬੀ' },
+  { id: 'or', label: 'ଓଡ଼ିଆ' },
 ]
 
 export const introMessages: Record<string, string> = {
-  bn: 'নমস্কার, Asha! 🙏 আমি Sahayak — আপনার কল্যাণ সহায়ক। বাংলা, হিন্দি বা ইংরেজিতে, টেক্সট বা ভয়েসে প্রশ্ন করুন।',
-  hi: 'नमस्ते, Asha! 🙏 मैं Sahayak हूँ — आपका कल्याण सहायक। बांग्ला, हिंदी या अंग्रेज़ी में, टाइप करके या आवाज़ से पूछिए।',
-  en: 'Hello again, Asha! 🙏 I\u2019m Sahayak, your welfare assistant. Ask me anything — in Bengali, Hindi or English, by text or voice.',
+  bn: 'নমস্কার, Asha! 🙏 আমি Sahayak — আপনার কল্যাণ সহায়ক। যেকোনো ভারতীয় ভাষায় টেক্সট বা ভয়েসে প্রশ্ন করুন।',
+  hi: 'नमस्ते, Asha! 🙏 मैं Sahayak हूँ — आपका कल्याण सहायक। किसी भी भारतीय भाषा में टाइप करके या आवाज़ से पूछिए।',
+  en: 'Hello again, Asha! 🙏 I’m Sahayak, your welfare assistant. Ask me anything in your preferred language by text or voice.',
+  ta: 'வணக்கம் Asha! 🙏 நான் சகாயக் — உங்கள் நல உதவி உதவியாளர். உங்கள் தாய்மொழியில் கேட்கலாம்.',
+  te: 'నమస్కారం Asha! 🙏 నేను సహాయక్ — మీ సంక్షేమ సహాయకుడిని. మీ మాతృభాషలో ఏదైనా అడగండి.',
+  mr: 'नमस्कार Asha! 🙏 मी सहायक आहे — तुमचा कल्याण सहाय्यक. तुमच्या आवडत्या भाषेत विचारा.',
+  gu: 'નમસ્તે Asha! 🙏 હું સહાયક છું — તમારો કલ્યાણ સહાયક. તમારી ભાષામાં પૂછો.',
+  kn: 'ನಮಸ್ಕಾರ Asha! 🙏 ನಾನು ಸಹಾಯಕ್ — ನಿಮ್ಮ ಕಲ್ಯಾಣ ಸಹಾಯಕ. ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ಕೇಳಿ.',
+  ml: 'നമസ്കാരം Asha! 🙏 ഞാൻ സഹായക് — നിങ്ങളുടെ ക്ഷേമ സഹായി. നിങ്ങളുടെ ഭാഷയിൽ ചോദിക്കൂ.',
+  pa: 'ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ Asha! 🙏 ਮੈਂ ਸਹਾਇਕ ਹਾਂ — ਤੁਹਾਡਾ ਭਲਾਈ ਸਹਾਇਕ। ਆਪਣੀ ਭਾਸ਼ਾ ਵਿੱਚ ਪੁੱਛੋ।',
+  or: 'ନମସ୍କାର Asha! 🙏 ମୁଁ ସହାୟକ — ଆପଣଙ୍କର କଲ୍ୟାଣ ସହାୟକ। ଆପଣଙ୍କ ଭାଷାରେ ପଚାରନ୍ତୁ।',
 }
 
 export const quickReplies = [
