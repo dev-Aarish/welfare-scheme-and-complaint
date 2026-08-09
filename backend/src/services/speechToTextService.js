@@ -17,6 +17,14 @@ const LANGUAGE_CODE_MAP = {
   bn: 'bn-IN',
   hi: 'hi-IN',
   en: 'en-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  mr: 'mr-IN',
+  gu: 'gu-IN',
+  kn: 'kn-IN',
+  ml: 'ml-IN',
+  pa: 'pa-IN',
+  or: 'od-IN',
 };
 
 /**
