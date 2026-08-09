@@ -437,28 +437,13 @@ function HeroSection({
               নমস্কার · West Bengal District Services
             </span>
 
-            <h1 className="mt-5 font-display text-[clamp(2.1rem,5.2vw,3.9rem)] font-bold leading-[1.04] tracking-tight text-ink-900">
-              <span className="block overflow-hidden">
+            <h1 className="mt-5 font-display text-[clamp(2.1rem,5.2vw,3.9rem)] font-bold leading-[1.1] tracking-tight text-ink-900">
+              <span className="block overflow-hidden pb-1.5 -mb-1.5">
                 <span data-hero="line" className="block">
-                  Every scheme you&rsquo;re{' '}
-                  <span className="relative whitespace-nowrap">
-                    entitled to,
-                    <svg
-                      viewBox="0 0 120 10"
-                      className="absolute -bottom-1.5 left-0 h-2.5 w-full text-brand-orange"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      preserveAspectRatio="none"
-                      aria-hidden
-                    >
-                      <path d="M2 7 C 14 2, 26 8, 38 4 S 62 8, 74 4 S 98 8, 118 5" />
-                    </svg>
-                  </span>
+                  Every scheme you&rsquo;re entitled to,
                 </span>
               </span>
-              <span className="block overflow-hidden">
+              <span className="block overflow-hidden pb-3 -mb-3">
                 <span data-hero="line" className="block">
                   found for your family.
                 </span>
