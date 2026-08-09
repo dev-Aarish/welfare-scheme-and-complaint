@@ -6,6 +6,7 @@ import {
   Map,
   MapPin,
   Navigation,
+  ShieldCheck,
   Upload,
   Video,
 } from 'lucide-react'
@@ -64,7 +65,7 @@ async function classifyComplaint(title: string, description: string, extra = '')
   }
 }
 
-export function FileComplaintPage() {
+export function FileComplaintPage({ anonymous = false }: { anonymous?: boolean }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [customCategory, setCustomCategory] = useState('')
@@ -135,7 +136,7 @@ export function FileComplaintPage() {
         longitude: location?.longitude,
         photo: await toDataUrl(photo),
         video: await toDataUrl(video),
-      })
+      }, anonymous)
       if (response) setSubmitted(response)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to file your complaint. Please try again.')
@@ -146,14 +147,25 @@ export function FileComplaintPage() {
 
   const evidenceLabel = result?.evidenceRequired ? 'Required' : 'Optional'
   return (
-    <div className="mx-auto max-w-[1100px]">
+    <div className={`mx-auto w-full ${anonymous ? 'max-w-[1400px]' : 'max-w-[1100px]'}`}>
       <div className="mb-8">
         <PageHeader
-          title="File a Complaint"
-          subtitle="Report a civic or public issue and help your community get the attention it deserves."
+          title={anonymous ? 'File an Anonymous Complaint' : 'File a Complaint'}
+          subtitle={anonymous
+            ? 'Report a civic or public issue without an account — no name, email, or phone needed.'
+            : 'Report a civic or public issue and help your community get the attention it deserves.'}
         />
       </div>
-      {submitted && <div role="status" className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-mint/30 bg-brand-mint/10 p-4 text-sm text-ink-900"><CheckCircle2 className="h-5 w-5 text-brand-mint" />{submitted.merged ? <>Your report was added to the existing complaint. Its priority has been increased. Reference: <strong>{submitted.ref}</strong>.</> : <>Complaint filed successfully. Your reference number is <strong>{submitted.ref}</strong>.</>}</div>}
+      {anonymous && (
+        <div role="note" className="mb-6 flex items-start gap-3 rounded-2xl border border-brand-mint/30 bg-brand-mint/10 p-4 text-sm text-ink-900">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-mint" />
+          <div>
+            <p className="font-semibold">Your identity is protected</p>
+            <p className="mt-0.5 leading-relaxed text-ink-700">We never ask for or store your name, email, or phone number. Your report is filed anonymously and you'll get a reference number to follow up later.</p>
+          </div>
+        </div>
+      )}
+      {submitted && <div role="status" className="mb-6 flex items-start gap-3 rounded-2xl border border-brand-mint/30 bg-brand-mint/10 p-4 text-sm text-ink-900"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-mint" />{submitted.merged ? <>Your report was added to the existing complaint. Its priority has been increased. Reference: <strong>{submitted.ref}</strong>.</> : anonymous ? <>Complaint filed successfully and your identity stays anonymous. Save your reference number to track it: <strong>{submitted.ref}</strong>.</> : <>Complaint filed successfully. Your reference number is <strong>{submitted.ref}</strong>.</>}</div>}
       {submitError && <div role="alert" className="mb-6 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 p-4 text-sm text-ink-900">{submitError}</div>}
       <form onSubmit={submit} className="space-y-6">
         <section className="rounded-[24px] border border-border-subtle bg-surface p-6 shadow-soft md:p-7">

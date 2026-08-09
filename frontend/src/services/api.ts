@@ -43,11 +43,14 @@ export async function classifyComplaintWithGemini(payload: { title: string; desc
   return json.success && json.data ? json.data : null
 }
 
-export async function createComplaint(payload: CreateComplaintPayload): Promise<{ ref: string; merged: boolean } | null> {
+export async function createComplaint(payload: CreateComplaintPayload, anonymous = false): Promise<{ ref: string; merged: boolean } | null> {
   try {
+    /* Anonymous mode must NEVER attach a stored session token — otherwise a
+       visitor with a lingering (still-valid) session in storage would have
+       their "anonymous" report linked to their identity. */
     const res = await fetch(`${API_BASE_URL}/complaints`, {
       method: 'POST',
-      headers: await authHeaders(),
+      headers: anonymous ? { 'Content-Type': 'application/json' } : await authHeaders(),
       body: JSON.stringify(payload),
     })
     const json = await res.json()

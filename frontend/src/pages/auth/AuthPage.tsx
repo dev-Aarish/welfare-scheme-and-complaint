@@ -666,20 +666,37 @@ export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
 
               {/* Footer line — citizen mode toggles sign-in / sign-up */}
               {role === 'citizen' && (
-                <p className="mt-6 text-center text-[13px] text-ink-400">
-                  {mode === 'signin' ? t.footerSignup : t.footerSignin}{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
-                      setStep('form')
-                      setError(null)
-                    }}
-                    className={orangeLink}
-                  >
-                    {mode === 'signin' ? t.footerSignupAction : t.footerSigninAction}
-                  </button>
-                </p>
+                <>
+                  <p className="mt-6 text-center text-[13px] text-ink-400">
+                    {mode === 'signin' ? t.footerSignup : t.footerSignin}{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
+                        setStep('form')
+                        setError(null)
+                      }}
+                      className={orangeLink}
+                    >
+                      {mode === 'signin' ? t.footerSignupAction : t.footerSigninAction}
+                    </button>
+                  </p>
+                  {/* Escape hatch for reporters who don't want an account at
+                      all — routes to the public anonymous complaint page. */}
+                  <p className="mt-3 text-center text-[13px] text-ink-400">
+                    {t.anonComplaintIntro}{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.history.pushState(null, '', '/file-complaint')
+                        window.dispatchEvent(new Event('popstate'))
+                      }}
+                      className={orangeLink}
+                    >
+                      {t.anonComplaintAction}
+                    </button>
+                  </p>
+                </>
               )}
 
               {/* Demo escape hatch — guest mode, works even without Supabase. */}
@@ -691,19 +708,6 @@ export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
                 {t.continueAnyway}
               </button>
 
-              <div className="mt-4 pt-3 border-t border-border-subtle text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.history.pushState(null, '', '/admin/login')
-                    window.dispatchEvent(new Event('popstate'))
-                  }}
-                  className="inline-flex items-center justify-center gap-2 w-full rounded-xl border border-border-subtle bg-canvas/60 px-4 py-2.5 text-xs font-semibold text-ink-700 transition-colors duration-150 hover:border-brand-orange hover:bg-surface hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
-                >
-                  <ShieldCheck className="h-4 w-4 text-brand-orange" />
-                  <span>Admin Portal Login</span>
-                </button>
-              </div>
             </div>
           </section>
         </div>

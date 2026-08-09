@@ -45,6 +45,8 @@ export interface AuthCopy {
   footerSignupAction: string
   footerSignin: string
   footerSigninAction: string
+  anonComplaintIntro: string
+  anonComplaintAction: string
   continueAnyway: string
   errMobile: string
   errOtp: string
@@ -108,6 +110,8 @@ citizenHeading: { signin: 'Welcome back', signup: 'Create your account' },
     footerSignupAction: 'Create account',
     footerSignin: 'Already registered?',
     footerSigninAction: 'Sign in',
+    anonComplaintIntro: 'No account? No problem.',
+    anonComplaintAction: 'File a complaint anonymously',
     continueAnyway: 'Continue anyway',
     errMobile: 'Enter a valid email address.',
     errOtp: 'Enter all 6 digits to continue.',
@@ -164,6 +168,8 @@ citizenHeading: { signin: 'Welcome back', signup: 'Create your account' },
     footerSignupAction: 'অ্যাকাউন্ট খুলুন',
     footerSignin: 'আগে থেকেই নথিভুক্ত?',
     footerSigninAction: 'প্রবেশ করুন',
+    anonComplaintIntro: 'অ্যাকাউন্ট নেই? কোনো সমস্যা নেই।',
+    anonComplaintAction: 'বেনামে অভিযোগ জানান',
     continueAnyway: 'তবুও ঢুকে পড়ুন',
     errMobile: 'সঠিক ইমেইল ঠিকানা দিন।',
     errOtp: 'চালিয়ে যেতে ৬টি ডিজিটই দিন।',
@@ -220,6 +226,8 @@ citizenHeading: { signin: 'Welcome back', signup: 'Create your account' },
     footerSignupAction: 'खाता बनाएँ',
     footerSignin: 'पहले से पंजीकृत हैं?',
     footerSigninAction: 'साइन इन करें',
+    anonComplaintIntro: 'खाता नहीं है? कोई बात नहीं।',
+    anonComplaintAction: 'गुमनाम रूप से शिकायत दर्ज करें',
     continueAnyway: 'फिर भी आगे बढ़ें',
     errMobile: 'सही ईमेल पता दर्ज करें।',
     errOtp: 'आगे बढ़ने के लिए सभी 6 अंक दर्ज करें।',

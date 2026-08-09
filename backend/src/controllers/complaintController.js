@@ -73,6 +73,8 @@ export async function createComplaint(req, res) {
     const location = parsedLatitude !== null && parsedLongitude !== null
       ? `${parsedLatitude.toFixed(6)}, ${parsedLongitude.toFixed(6)}`
       : 'Location not shared';
+    // No signed-in user → the report is anonymous and no identity is stored.
+    const anonymous = !req.user?.localUser;
     const complaint = await prisma.complaint.create({
       data: {
         ref,
@@ -92,7 +94,7 @@ export async function createComplaint(req, res) {
           ],
         },
         userId: req.user?.localUser?.id ?? null,
-        statusHistory: { create: { newStatus: 'OPEN', changedById: req.user?.localUser?.id ?? null, remark: 'Complaint filed by citizen.' } },
+        statusHistory: { create: { newStatus: 'OPEN', changedById: req.user?.localUser?.id ?? null, remark: anonymous ? 'Complaint filed anonymously (no account).' : 'Complaint filed by citizen.' } },
       },
       select: { id: true, ref: true, status: true, createdAt: true },
     });
