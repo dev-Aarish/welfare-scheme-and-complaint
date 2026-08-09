@@ -79,6 +79,21 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "citizen_documents" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "doc_type" TEXT NOT NULL,
+    "file_name" TEXT NOT NULL,
+    "file_url" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "note" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "citizen_documents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "family_members" (
     "id" TEXT NOT NULL,
     "user_id" TEXT,
@@ -184,7 +199,16 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE UNIQUE INDEX "complaints_ref_key" ON "complaints"("ref");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "citizen_documents_user_id_doc_type_key" ON "citizen_documents"("user_id", "doc_type");
+
+-- CreateIndex
+CREATE INDEX "citizen_documents_user_id_idx" ON "citizen_documents"("user_id");
+
+-- CreateIndex
 CREATE INDEX "complaint_evidence_complaint_id_idx" ON "complaint_evidence"("complaint_id");
+
+-- AddForeignKey
+ALTER TABLE "citizen_documents" ADD CONSTRAINT "citizen_documents_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "family_members" ADD CONSTRAINT "family_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

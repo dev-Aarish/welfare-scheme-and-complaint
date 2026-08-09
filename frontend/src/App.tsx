@@ -15,6 +15,7 @@ import { ResolvedSection } from './components/ResolvedSection'
 import { Footer } from './components/Footer'
 import { ChatPage } from './pages/ChatPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { VerificationPage } from './pages/VerificationPage'
 import { CatalogPage } from './pages/CatalogPage'
 import { SchemeDetailPage } from './pages/SchemeDetailPage'
 import { HelplinePage } from './pages/HelplinePage'
@@ -271,6 +272,9 @@ function AppShell() {
               <HelplinePage />
             ))}
           {tab === 'complaints' && role !== 'officer' && <FileComplaintPage />}
+          {tab === 'verification' && role !== 'officer' && (
+            <VerificationPage onOpenSchemes={() => handleTabSelect('schemes')} />
+          )}
           <Footer onSignOut={handleSignOut} />
         </main>
       </div>

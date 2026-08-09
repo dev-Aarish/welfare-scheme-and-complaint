@@ -406,3 +406,49 @@ export async function saveHouseholdProfile(
   }
   return null;
 }
+
+/* ── Document verification (Verification page) ─────────────── */
+
+export interface VerificationDocument {
+  id: string
+  docType: string
+  fileName: string
+  fileUrl?: string | null
+  status: 'PENDING' | 'VERIFIED'
+  note?: string | null
+  updatedAt: string
+}
+
+/** Loads the current user's verification documents from the backend. */
+export async function fetchVerificationDocuments(): Promise<VerificationDocument[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/documents`, {
+      headers: await authHeaders(),
+    });
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) return json.data;
+  } catch (err) {
+    console.error('Failed to fetch verification documents:', err);
+  }
+  return []
+}
+
+/** Uploads a verification document (photo/PDF data URL) to the backend. */
+export async function uploadVerificationDocument(payload: {
+  docType: string
+  fileName: string
+  fileData: string
+}): Promise<VerificationDocument | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/documents`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (json.success && json.data) return json.data
+  } catch (err) {
+    console.error('Failed to upload verification document:', err);
+  }
+  return null
+}

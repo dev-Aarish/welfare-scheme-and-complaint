@@ -1,4 +1,4 @@
-import { LogOut, ShieldCheck } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 export function Footer({ onSignOut }: { onSignOut?: () => void }) {
   return (
@@ -20,19 +20,6 @@ export function Footer({ onSignOut }: { onSignOut?: () => void }) {
         IEMH4-SI-01 · Eligibility matching · Multilingual voice assistant ·
         Anonymous geotagged reporting
       </p>
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            window.history.pushState(null, '', '/admin/login')
-            window.dispatchEvent(new Event('popstate'))
-          }}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-700 transition-colors hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
-        >
-          <ShieldCheck className="h-3.5 w-3.5 text-brand-orange" />
-          <span>Admin Login</span>
-        </button>
-      </div>
     </footer>
   )
 }
