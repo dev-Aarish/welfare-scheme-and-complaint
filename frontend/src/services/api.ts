@@ -62,6 +62,57 @@ export async function createComplaint(payload: CreateComplaintPayload, anonymous
   }
 }
 
+export interface MyComplaint {
+  id: string
+  ref: string
+  title: string
+  description?: string | null
+  location: string
+  latitude?: number | null
+  longitude?: number | null
+  category: string
+  priority: string
+  photoUrl?: string | null
+  videoUrl?: string | null
+  status: string
+  isEscalated: boolean
+  escalationLevel: number
+  escalatedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  assignedDepartment?: { id: string; name: string; code: string } | null
+  assignedOfficer?: { id: string; fullName: string; email: string } | null
+  evidence?: Array<{
+    id: string
+    mediaUrl: string
+    mediaType: string
+    createdAt: string
+  }>
+  remarks?: Array<{ id: string; remark: string; createdAt: string }>
+  statusHistory?: Array<{
+    id: string
+    previousStatus: string | null
+    newStatus: string
+    remark?: string | null
+    createdAt: string
+  }>
+}
+
+/** Loads the signed-in citizen's own complaints from the backend (newest
+ *  first) so the overview can track real reports instead of demo cards. */
+export async function fetchMyComplaints(): Promise<MyComplaint[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/complaints`, {
+      headers: await authHeaders(),
+    })
+    const json = await res.json()
+    if (json.success && Array.isArray(json.data)) return json.data
+  } catch (err) {
+    console.error('Failed to fetch my complaints:', err)
+  }
+  return []
+}
+
 export interface BackendScheme {
   id: string;
   externalId?: string;
