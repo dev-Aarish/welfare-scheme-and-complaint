@@ -244,31 +244,8 @@ export function AuthPage({ theme, onToggleTheme }: AuthPageProps) {
       ref={scope}
       className="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8"
     >
-      {/* Ambient line-art on the page canvas (design.md §8), never interactive */}
-      <svg
-        viewBox="0 0 240 240"
-        className="doodle-drift pointer-events-none absolute -left-14 -top-16 h-80 w-80 text-brand-mint opacity-20 dark:opacity-10"
-        style={{ animationDuration: '38s' }}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        aria-hidden
-      >
-        <path d="M120 120 m-30 0 a30 30 0 1 1 60 0 a42 42 0 1 1 -84 0 a54 54 0 1 1 108 0 a66 66 0 1 1 -132 0" />
-      </svg>
-      <svg
-        viewBox="0 0 200 100"
-        className="doodle-drift pointer-events-none absolute -bottom-6 -right-10 h-28 w-64 text-brand-mint opacity-15 dark:opacity-10"
-        style={{ animationDuration: '29s', animationDelay: '-7s' }}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        aria-hidden
-      >
-        <path d="M5 50 C 35 15, 65 85, 95 50 S 155 15, 185 50" />
-      </svg>
+      {/* Page-background doodles (concentric spiral, squiggles) are provided
+          by DecorativeBackground in App.tsx — do not duplicate them here. */}
 
       <div className="absolute right-6 top-6 z-20 flex items-center gap-2.5">
         <button
