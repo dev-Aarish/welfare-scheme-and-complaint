@@ -75,31 +75,60 @@ interface CatalogPageProps {
   onSelectScheme?: (schemeId: string) => void
 }
 
+/* The catalog unmounts while a scheme detail is open (App.tsx swaps the two
+   views and re-keys <main>). Keep the user's place — page number and every
+   filter — in a module-level snapshot so it survives the remount. */
+interface CatalogSnapshot {
+  query: string
+  category: string
+  stateUt: string
+  genderFilter: string
+  ageGroup: string
+  casteFilter: string
+  residenceFilter: string
+  benefitTypeFilter: string
+  maritalStatus: string
+  disabilityPct: string
+  empStatus: string
+  occupationFilter: string
+  cbMinority: boolean
+  cbDifferentlyAbled: boolean
+  cbDbtScheme: boolean
+  cbBpl: boolean
+  cbEconomicDistress: boolean
+  cbGovtEmployee: boolean
+  cbStudent: boolean
+  page: number
+}
+
+const catalogSnapshots = new Map<Role, CatalogSnapshot | null>()
+
 export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
   const isOfficer = role === 'officer'
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<string>('All')
+  const saved = catalogSnapshots.get(role) || null
+  const [query, setQuery] = useState(saved?.query ?? '')
+  const [category, setCategory] = useState<string>(saved?.category ?? 'All')
 
   // Filter Panel filter states
-  const [stateUt, setStateUt] = useState<string>('all')
-  const [genderFilter, setGenderFilter] = useState<string>('all')
-  const [ageGroup, setAgeGroup] = useState<string>('all')
-  const [casteFilter, setCasteFilter] = useState<string>('all')
-  const [residenceFilter, setResidenceFilter] = useState<string>('all')
-  const [benefitTypeFilter, setBenefitTypeFilter] = useState<string>('all')
-  const [maritalStatus, setMaritalStatus] = useState<string>('all')
-  const [disabilityPct, setDisabilityPct] = useState<string>('all')
-  const [empStatus, setEmpStatus] = useState<string>('all')
-  const [occupationFilter, setOccupationFilter] = useState<string>('all')
+  const [stateUt, setStateUt] = useState<string>(saved?.stateUt ?? 'all')
+  const [genderFilter, setGenderFilter] = useState<string>(saved?.genderFilter ?? 'all')
+  const [ageGroup, setAgeGroup] = useState<string>(saved?.ageGroup ?? 'all')
+  const [casteFilter, setCasteFilter] = useState<string>(saved?.casteFilter ?? 'all')
+  const [residenceFilter, setResidenceFilter] = useState<string>(saved?.residenceFilter ?? 'all')
+  const [benefitTypeFilter, setBenefitTypeFilter] = useState<string>(saved?.benefitTypeFilter ?? 'all')
+  const [maritalStatus, setMaritalStatus] = useState<string>(saved?.maritalStatus ?? 'all')
+  const [disabilityPct, setDisabilityPct] = useState<string>(saved?.disabilityPct ?? 'all')
+  const [empStatus, setEmpStatus] = useState<string>(saved?.empStatus ?? 'all')
+  const [occupationFilter, setOccupationFilter] = useState<string>(saved?.occupationFilter ?? 'all')
 
   // Checkbox filters
-  const [cbMinority, setCbMinority] = useState<boolean>(false)
-  const [cbDifferentlyAbled, setCbDifferentlyAbled] = useState<boolean>(false)
-  const [cbDbtScheme, setCbDbtScheme] = useState<boolean>(false)
-  const [cbBpl, setCbBpl] = useState<boolean>(false)
-  const [cbEconomicDistress, setCbEconomicDistress] = useState<boolean>(false)
-  const [cbGovtEmployee, setCbGovtEmployee] = useState<boolean>(false)
-  const [cbStudent, setCbStudent] = useState<boolean>(false)
+  const [cbMinority, setCbMinority] = useState<boolean>(saved?.cbMinority ?? false)
+  const [cbDifferentlyAbled, setCbDifferentlyAbled] = useState<boolean>(saved?.cbDifferentlyAbled ?? false)
+  const [cbDbtScheme, setCbDbtScheme] = useState<boolean>(saved?.cbDbtScheme ?? false)
+  const [cbBpl, setCbBpl] = useState<boolean>(saved?.cbBpl ?? false)
+  const [cbEconomicDistress, setCbEconomicDistress] = useState<boolean>(saved?.cbEconomicDistress ?? false)
+  const [cbGovtEmployee, setCbGovtEmployee] = useState<boolean>(saved?.cbGovtEmployee ?? false)
+  const [cbStudent, setCbStudent] = useState<boolean>(saved?.cbStudent ?? false)
 
   // Accordion Expand/Collapse States
   const [openGender, setOpenGender] = useState<boolean>(false)
@@ -109,9 +138,9 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
   const [openMarital, setOpenMarital] = useState<boolean>(false)
   const [openEmpStatus, setOpenEmpStatus] = useState<boolean>(false)
 
-  const [page, setPage] = useState<number>(1)
+  const [page, setPage] = useState<number>(saved?.page ?? 1)
   const [totalPages, setTotalPages] = useState<number>(1)
-  const [totalCount, setTotalCount] = useState<number>(160)
+  const [totalCount, setTotalCount] = useState<number>(866)
 
   const [categoriesList, setCategoriesList] = useState<string[]>(['All', ...catalogCategories])
   const [allFetchedSchemes, setAllFetchedSchemes] = useState<BackendScheme[]>([])
@@ -142,7 +171,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
         category: selectedCategory,
         search: query.trim() ? query.trim() : undefined,
         page: 1,
-        limit: 200,
+        limit: 1000,
       })
 
       if (isSubscribed) {
@@ -292,6 +321,55 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
     setTotalPages(pages)
   }, [
     allFetchedSchemes,
+    stateUt,
+    genderFilter,
+    ageGroup,
+    casteFilter,
+    residenceFilter,
+    benefitTypeFilter,
+    maritalStatus,
+    disabilityPct,
+    empStatus,
+    occupationFilter,
+    cbMinority,
+    cbDifferentlyAbled,
+    cbDbtScheme,
+    cbBpl,
+    cbEconomicDistress,
+    cbGovtEmployee,
+    cbStudent,
+    page,
+  ])
+
+  // 3b. Persist the user's place in the catalog so it survives the detail
+  // view's unmount/remount cycle (see App.tsx key={tab}-{selectedSchemeId}).
+  useEffect(() => {
+    catalogSnapshots.set(role, {
+      query,
+      category,
+      stateUt,
+      genderFilter,
+      ageGroup,
+      casteFilter,
+      residenceFilter,
+      benefitTypeFilter,
+      maritalStatus,
+      disabilityPct,
+      empStatus,
+      occupationFilter,
+      cbMinority,
+      cbDifferentlyAbled,
+      cbDbtScheme,
+      cbBpl,
+      cbEconomicDistress,
+      cbGovtEmployee,
+      cbStudent,
+      page,
+    })
+  }, [
+    role,
+    query,
+    category,
     stateUt,
     genderFilter,
     ageGroup,
@@ -748,7 +826,7 @@ export function CatalogPage({ role, onSelectScheme }: CatalogPageProps) {
             <input
               value={query}
               onChange={handleQuery}
-              placeholder="Search 160+ schemes, benefits or categories (e.g. farmer, housing, solar)…"
+              placeholder="Search 800+ schemes, benefits or categories (e.g. farmer, housing, solar)…"
               aria-label="Search schemes"
               className="w-full min-w-0 flex-1 bg-transparent px-2 py-3 text-[15px] text-ink-900 placeholder:text-ink-400 focus:outline-none max-md:py-2.5 max-md:text-[13px]"
             />

@@ -522,7 +522,7 @@ export function SchemesSection({ onOpenCatalog, onSelectScheme, onMatchesChange 
                 onClick={onOpenCatalog}
                 className="mt-2 text-xs font-semibold text-brand-orange hover:underline"
               >
-                Browse 160+ schemes in full catalog →
+                Browse 800+ schemes in full catalog →
               </button>
             </div>
           )}
@@ -646,7 +646,7 @@ function AddNewCard({ onOpenCatalog }: { onOpenCatalog?: () => void }) {
           </span>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-ink-400">
-          Browse the full dynamic catalog of 160+ government schemes.
+          Browse the full dynamic catalog of 800+ government schemes.
         </p>
         <p className="mt-auto pt-4 text-xs font-medium text-brand-orange">
           Open catalog →
@@ -663,7 +663,7 @@ function AddNewCard({ onOpenCatalog }: { onOpenCatalog?: () => void }) {
             Search all schemes
           </span>
           <span className="mt-0.5 block truncate text-[11px] text-ink-400">
-            Browse the full dynamic catalog of 160+ government schemes.
+            Browse the full dynamic catalog of 800+ government schemes.
           </span>
         </span>
         <span className="text-xs font-semibold text-brand-orange">Catalog →</span>

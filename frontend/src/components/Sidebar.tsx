@@ -86,18 +86,6 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => {
-            window.history.pushState(null, '', '/complaints/track')
-            window.dispatchEvent(new Event('popstate'))
-          }}
-          title="Track Grievance (Step-by-Step)"
-          className="flex w-full items-center gap-2.5 rounded-[14px] px-4 py-2 text-left text-[13px] font-semibold text-ink-700 transition-colors duration-150 hover:bg-canvas hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
-        >
-          <ShieldCheck className="h-4 w-4 shrink-0 text-brand-orange" strokeWidth={1.75} />
-          Live Grievance Tracker
-        </button>
-        <button
-          type="button"
-          onClick={() => {
             window.history.pushState(null, '', '/admin/login')
             window.dispatchEvent(new Event('popstate'))
           }}
