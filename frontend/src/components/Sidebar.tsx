@@ -19,7 +19,11 @@ export function Sidebar({
   role,
 }: SidebarProps) {
   const { identity } = useAuth()
-  const visibleTabs = tabs.filter((t) => role === 'officer' || !t.officerOnly)
+  /* Officers keep the shared desk tabs but not citizen-facing ones (helpline,
+     file complaint); citizens never see officer-only destinations. */
+  const visibleTabs = tabs.filter((t) =>
+    role === 'officer' ? !t.officerHidden : !t.officerOnly,
+  )
   /* Nav pill settles softly into its new position on tab switch (§3.2). */
   const scope = useNavPillSettle(active)
 

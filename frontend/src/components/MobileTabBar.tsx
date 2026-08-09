@@ -3,7 +3,6 @@ import {
   Library,
   Map,
   MessagesSquare,
-  Phone,
   Plus,
   UserRound,
   type LucideIcon,
@@ -32,7 +31,6 @@ const OFFICER_TABS: TabBarItem[] = [
   { id: 'overview', label: 'Home', icon: LayoutGrid },
   { id: 'map', label: 'Map', icon: Map },
   { id: 'schemes', label: 'Schemes', icon: Library },
-  { id: 'helpline', label: 'Help', icon: Phone },
   { id: 'chat', label: 'Chat', icon: MessagesSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ]

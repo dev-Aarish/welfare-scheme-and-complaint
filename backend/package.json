@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "seed": "node src/seeders/schemeSeeder.js",
     "seed:admin": "node src/seeders/adminSeeder.js",
+    "seed:officer": "node src/seeders/officerSeeder.js",
     "sync": "node src/jobs/schemeSyncJob.js"
   },
   "dependencies": {
