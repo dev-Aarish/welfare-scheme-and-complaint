@@ -56,6 +56,14 @@ function mediaUrl(url: string): string {
   }
 }
 
+/** Shown when an evidence file is missing — e.g. legacy local-disk uploads
+ *  that were recorded before evidence moved to cloud storage. */
+const MISSING_EVIDENCE_IMAGE =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320"><rect width="100%" height="100%" fill="#f2efe9"/><g fill="none" stroke="#c9c2b8" stroke-width="10" stroke-linecap="round"><path d="M260 130l40 45 30-35 55 65H255z"/><circle cx="285" cy="115" r="22"/></g><text x="320" y="225" font-family="sans-serif" font-size="18" fill="#8a837b" text-anchor="middle">Image unavailable</text></svg>`
+  )
+
 export function ComplaintDetailModal({
   complaint,
   onClose,
@@ -338,6 +346,12 @@ export function ComplaintDetailModal({
                       <img
                         src={mediaUrl(item.mediaUrl)}
                         alt="Uploaded evidence"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null
+                          e.currentTarget.src = MISSING_EVIDENCE_IMAGE
+                          // The file is gone — don't let the click open a dead URL.
+                          e.currentTarget.closest('a')?.removeAttribute('href')
+                        }}
                         className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
                       />
                     </a>

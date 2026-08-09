@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import schemeRoutes from './routes/schemeRoutes.js';
@@ -36,7 +38,12 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '20mb' }));
-app.use('/uploads', express.static('uploads'));
+// Serve locally-stored evidence from the same absolute folder fileStore.js
+// writes to — a CWD-relative path would silently 404 whenever the server is
+// started from anywhere other than backend/. (Cloud uploads live in Supabase
+// Storage and never hit this route.)
+const uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Health Check
 app.get('/health', (req, res) => {
