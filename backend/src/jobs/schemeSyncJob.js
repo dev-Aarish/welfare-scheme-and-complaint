@@ -2,13 +2,14 @@ import { prisma } from '../config/prismaClient.js';
 import { localCatalogAdapter } from '../services/ingestion/localCatalogAdapter.js';
 import { mySchemeAdapter } from '../services/ingestion/mySchemeAdapter.js';
 import { dataGovAdapter } from '../services/ingestion/dataGovAdapter.js';
+import { stateSchemesAdapter } from '../services/ingestion/stateSchemesAdapter.js';
 import { normalizeScheme } from '../utils/schemeNormalizer.js';
 import { validateScheme } from '../utils/schemeValidator.js';
 import { deduplicateSchemes } from '../utils/schemeDeduplicator.js';
 
 export const runSchemeSync = async () => {
   console.log('🚀 Starting Welfare Schemes Ingestion Pipeline...');
-  const sources = [localCatalogAdapter, mySchemeAdapter, dataGovAdapter];
+  const sources = [localCatalogAdapter, mySchemeAdapter, dataGovAdapter, stateSchemesAdapter];
   let allRawSchemes = [];
 
   for (const source of sources) {
