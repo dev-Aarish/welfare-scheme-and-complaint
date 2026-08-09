@@ -55,8 +55,12 @@ export function requireAdmin(req, res, next) {
  * the existing Prisma User model (family members, profile, etc.).
  *
  * req.user = { supabaseId, role, localUser } once authenticated.
+ *
+ * When `options.optional` is set (see optionalAuth), requests without a valid
+ * token are allowed through with req.user = null instead of a 401 — used for
+ * public, anonymous complaint filing.
  */
-export async function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next, options = {}) {
   if (!supabaseEnabled) {
     // Dev fallback: no Supabase project configured — treat request as a
     // guest citizen so scheme browsing keeps working during development.
@@ -72,6 +76,11 @@ export async function requireAuth(req, res, next) {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
   if (!token) {
+    if (options.optional) {
+      // Public request without a session — proceed anonymously.
+      req.user = null;
+      return next();
+    }
     return res.status(401).json({
       success: false,
       error: 'Authentication required: missing Authorization header.',
@@ -85,6 +94,11 @@ export async function requireAuth(req, res, next) {
     userClaims = data.user;
   } catch (error) {
     console.error('Supabase token verification failed:', error.message);
+    if (options.optional) {
+      // Expired/invalid token on a public endpoint — fall back to anonymous.
+      req.user = null;
+      return next();
+    }
     return res.status(401).json({
       success: false,
       error: 'Invalid or expired session token.',
@@ -92,6 +106,10 @@ export async function requireAuth(req, res, next) {
   }
 
   if (!userClaims) {
+    if (options.optional) {
+      req.user = null;
+      return next();
+    }
     return res.status(401).json({
       success: false,
       error: 'Invalid or expired session token.',
@@ -155,6 +173,13 @@ export async function requireAuth(req, res, next) {
   };
 
   return next();
+}
+
+/** Like requireAuth, but anonymous requests pass through with req.user = null
+ *  instead of receiving a 401. Used for public, identity-protected complaint
+ *  filing by users who are not signed in. */
+export function optionalAuth(req, res, next) {
+  return requireAuth(req, res, next, { optional: true });
 }
 
 /** Like requireAuth, but only lets officers (and admins) through. */

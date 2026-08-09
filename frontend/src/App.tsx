@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DecorativeBackground } from './components/DecorativeBackground'
 import { AuthPage } from './pages/auth/AuthPage'
-import { LandingPage } from './pages/LandingPage'
 import { OfficerPage } from './pages/officer/OfficerPage'
 import { OfficerMapPage } from './pages/officer/OfficerMapPage'
 import { OfficerProfilePage } from './pages/officer/OfficerProfilePage'
@@ -20,6 +19,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { SchemeDetailPage } from './pages/SchemeDetailPage'
 import { HelplinePage } from './pages/HelplinePage'
 import { FileComplaintPage } from './pages/FileComplaintPage'
+import { AnonymousComplaintPage } from './pages/AnonymousComplaintPage'
 import { AdminLoginPage } from './pages/admin/AdminLoginPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage'
@@ -48,7 +48,6 @@ function AppShell() {
   /* Supabase session when configured; guest role when demo mode. */
   const { loading, session, role, guest, signOut } = useAuth()
   const authed = guest || session !== null
-  const [showAuth, setShowAuth] = useState(false)
 
   /* Route path state for /admin pathname handling */
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname)
@@ -182,14 +181,18 @@ function AppShell() {
   }
 
  if (!authed) {
-  if (!showAuth) {
+  /* Public anonymous complaint page — reachable without an account. */
+  if (currentPath === '/file-complaint') {
     return (
-      <LandingPage
-        onGetStarted={() => setShowAuth(true)}
+      <AnonymousComplaintPage
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onBack={() => navigate('/')}
       />
     )
   }
 
+  /* Signed-out visitors land straight on the login / sign-up page. */
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink-900">
       <DecorativeBackground insetForSidebar={false} />

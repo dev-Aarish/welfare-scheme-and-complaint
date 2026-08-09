@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { createComplaint } from '../controllers/complaintController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/', requireAuth, createComplaint);
+// open endpoint: signed-in citizens and anonymous reporters can both file.
+router.post('/', optionalAuth, createComplaint);
 
 export default router;
