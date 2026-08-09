@@ -4,42 +4,52 @@ import { prisma } from '../config/prismaClient.js';
 
 dotenv.config();
 
+/**
+ * Creates or repairs the default admin user (admin@sevanest.gov.in / Admin@123!)
+ * with a valid bcrypt hash and ADMIN role. Safe to call on every startup — it
+ * fixes rows that were seeded without a password_hash (which previously locked
+ * the admin out of the portal with a permanent "Invalid email or password").
+ */
+export async function ensureAdminUser() {
+  const adminEmail = 'admin@sevanest.gov.in';
+  const rawPassword = 'Admin@123!';
+  const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (!existingAdmin) {
+    const adminUser = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        fullName: 'System Administrator',
+        passwordHash: passwordHash,
+        role: 'ADMIN',
+        phone: '+91-9876543210',
+        state: 'WEST_BENGAL',
+        casteCategory: 'General',
+        annualIncome: 500000,
+      },
+    });
+    console.log('✅ Admin user created successfully:', adminUser.email);
+  } else {
+    // Ensure admin has role ADMIN and password hash updated
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: {
+        role: 'ADMIN',
+        passwordHash: passwordHash,
+      },
+    });
+    console.log('ℹ️ Admin user already exists. Verified credentials and ADMIN role.');
+  }
+}
+
 export async function seedAdmin() {
   console.log('🌱 Seeding Admin User and Initial Complaint Data...');
   try {
-    const adminEmail = 'admin@sevanest.gov.in';
-    const rawPassword = 'Admin@123!';
-    const passwordHash = await bcrypt.hash(rawPassword, 10);
-
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: adminEmail },
-    });
-
-    if (!existingAdmin) {
-      const adminUser = await prisma.user.create({
-        data: {
-          email: adminEmail,
-          fullName: 'System Administrator',
-          passwordHash: passwordHash,
-          role: 'ADMIN',
-          phone: '+91-9876543210',
-          state: 'WEST_BENGAL',
-          casteCategory: 'General',
-          annualIncome: 500000,
-        },
-      });
-      console.log('✅ Admin user created successfully:', adminUser.email);
-    } else {
-      // Ensure admin has role ADMIN and password hash updated
-      await prisma.user.update({
-        where: { email: adminEmail },
-        data: {
-          role: 'ADMIN',
-          passwordHash: passwordHash,
-        },
-      });
-      console.log('ℹ️ Admin user already exists. Verified credentials and ADMIN role.');
-    }
+    await ensureAdminUser();
 
     // Seed sample complaints if table is empty
     const complaintCount = await prisma.complaint.count();
