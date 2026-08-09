@@ -1,6 +1,6 @@
 import {
-  FileText,
   LayoutGrid,
+  Library,
   Map,
   MessagesSquare,
   Phone,
@@ -22,7 +22,7 @@ interface TabBarItem {
    citizen's "Report" action; the officer keeps the map on the bar. */
 const CITIZEN_TABS: TabBarItem[] = [
   { id: 'overview', label: 'Home', icon: LayoutGrid },
-  { id: 'schemes', label: 'Schemes', icon: FileText },
+  { id: 'schemes', label: 'Schemes', icon: Library },
   { id: 'complaints', label: 'Report', icon: Plus },
   { id: 'chat', label: 'Chat', icon: MessagesSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
@@ -31,7 +31,7 @@ const CITIZEN_TABS: TabBarItem[] = [
 const OFFICER_TABS: TabBarItem[] = [
   { id: 'overview', label: 'Home', icon: LayoutGrid },
   { id: 'map', label: 'Map', icon: Map },
-  { id: 'schemes', label: 'Schemes', icon: FileText },
+  { id: 'schemes', label: 'Schemes', icon: Library },
   { id: 'helpline', label: 'Help', icon: Phone },
   { id: 'chat', label: 'Chat', icon: MessagesSquare },
   { id: 'profile', label: 'Profile', icon: UserRound },
