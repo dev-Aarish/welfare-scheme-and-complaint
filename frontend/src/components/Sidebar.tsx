@@ -146,32 +146,9 @@ function PromoCard({ onClick }: { onClick: () => void }) {
       <p className="pr-6 text-sm font-semibold leading-snug text-ink-900">
         Let's verify your documents
       </p>
-      <p className="mt-1 pr-10 text-xs leading-relaxed text-ink-400">
+      <p className="mt-1 pr-6 text-xs leading-relaxed text-ink-400">
         Unlock 2 more scheme matches.
       </p>
-      <MeditatingFigure className="absolute -bottom-2 -right-2 h-16 w-16 text-brand-orange" />
     </button>
-  )
-}
-
-function MeditatingFigure({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="32" cy="14" r="6" />
-      <path d="M32 22v10" />
-      <path d="M20 48c0-9 5-13 12-13s12 4 12 13" />
-      <path d="M13 48h38" />
-      <path d="M24 37l-7 7 4 4" />
-      <path d="M40 37l7 7-4 4" />
-    </svg>
   )
 }
