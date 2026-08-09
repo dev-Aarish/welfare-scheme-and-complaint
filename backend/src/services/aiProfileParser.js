@@ -91,16 +91,16 @@ async function parseWithGoogleGenAiSdk(promptText, apiKey) {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       ...payload,
     });
     if (response && response.text) {
       return JSON.parse(response.text);
     }
   } catch (err) {
-    // Retry with gemini-1.5-flash if gemini-2.5-flash is not found
+    // Retry with gemini-2.0-flash-lite if gemini-2.0-flash is not found
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash-lite',
       ...payload,
     });
     if (response && response.text) {

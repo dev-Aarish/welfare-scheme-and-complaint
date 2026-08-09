@@ -84,9 +84,9 @@ export async function checkSchemeEligibility(userProfile, schemeCriteria) {
 
     let response;
     try {
-      response = await ai.models.generateContent({ model: 'gemini-2.5-flash', ...payload });
+      response = await ai.models.generateContent({ model: 'gemini-2.0-flash', ...payload });
     } catch {
-      response = await ai.models.generateContent({ model: 'gemini-1.5-flash', ...payload });
+      response = await ai.models.generateContent({ model: 'gemini-2.0-flash-lite', ...payload });
     }
 
     if (response && response.text) {
@@ -113,7 +113,7 @@ function humanizeRule(r) {
   if (str.includes('household.landAcres GT 0')) return '✓ Agricultural Land Owner';
   if (str.includes('household.annualIncome LTE 200000')) return '✓ Household income under ₹2,00,000 limit';
   if (str.includes('person.age GTE 60')) return '✓ Senior Citizen (Age 60+)';
-  if (str.includes('person.age LT 18')) return '✓ Minor / Child scheme';
+  if (str.includes('person.age LT 21') || str.includes('person.age LT 18')) return '✓ Girl child / Minor scheme (Under 21)';
   if (str.includes('Demographic baseline alignment')) return '✓ Matched to your household demographic profile';
 
   const clean = str
@@ -177,7 +177,8 @@ function calculateRelevanceScore(scheme, context) {
 
   const isAgriScheme = text.includes('farmer') || text.includes('agri') || text.includes('kisan') || text.includes('crop') || text.includes('soil') || text.includes('harvest') || text.includes('tractor') || scheme.category === 'Agriculture' || scheme.category === 'Farmer';
   const isStudentScheme = text.includes('student') || text.includes('scholarship') || text.includes('education') || text.includes('school') || text.includes('college') || text.includes('fellowship') || text.includes('matric') || scheme.category === 'Education';
-  const isFemaleScheme = text.includes('women') || text.includes('girl') || text.includes('mother') || text.includes('widow') || text.includes('kanyashree') || text.includes('bhandar') || text.includes('sukanya') || text.includes('matru') || text.includes('female');
+  const isGirlChildScheme = text.includes('girl child') || text.includes('girl') || text.includes('sukanya') || text.includes('kanyashree') || text.includes('balika') || text.includes('kanya sumangala') || text.includes('single girl') || (scheme.tag && scheme.tag.toLowerCase().includes('girl'));
+  const isFemaleScheme = (text.includes('women') || text.includes('mother') || text.includes('widow') || text.includes('bhandar') || text.includes('matru') || text.includes('female') || scheme.category === 'Women') && !isGirlChildScheme;
   const isSeniorScheme = text.includes('old age') || text.includes('pension') || text.includes('senior citizen') || text.includes('vayo') || text.includes('elderly');
   const isDisabilityScheme = text.includes('disability') || text.includes('handicapped') || text.includes('divyang') || text.includes('pwd') || text.includes('adip') || text.includes('prosthetic');
   const isLaborScheme = text.includes('labour') || text.includes('worker') || text.includes('mgnrega') || text.includes('unorganized') || text.includes('construction worker') || text.includes('shramik');
@@ -226,12 +227,31 @@ function calculateRelevanceScore(scheme, context) {
     if (isDisabilityScheme) score -= 50; // Non-disabled persons shouldn't get PwD schemes
   }
 
-  // Gender Alignment
+  // Gender & Age Alignment for Girl Child vs Female Schemes
   const gender = (p.gender || '').toUpperCase();
-  if (gender === 'FEMALE') {
-    if (isFemaleScheme) score += 25;
-  } else if (gender === 'MALE') {
-    if (isFemaleScheme) score -= 60; // Hard penalty for males on female schemes
+  const adultRelations = ['MOTHER', 'FATHER', 'SPOUSE', 'GRANDMOTHER', 'GRANDFATHER', 'PARENT'];
+  const relationUpper = (p.relation || '').toUpperCase();
+
+  if (isGirlChildScheme) {
+    if ((p.age !== undefined && p.age !== null && p.age >= 21) || adultRelations.includes(relationUpper)) {
+      score -= 150; // Hard disqualification for adults (e.g. 48yo Mother) on girl child schemes
+    } else if (gender === 'FEMALE' && (p.age === undefined || p.age === null || p.age < 21)) {
+      score += 45; // Bonus for female children/minors
+    } else if (gender === 'MALE') {
+      score -= 100;
+    }
+  }
+
+  if (isFemaleScheme) {
+    if (gender === 'FEMALE') {
+      if (p.age !== undefined && p.age !== null && p.age >= 18) {
+        score += 35; // Adult female / mother bonus
+      } else {
+        score += 20;
+      }
+    } else if (gender === 'MALE') {
+      score -= 60; // Penalty for males on female schemes
+    }
   }
 
   // Age Alignment
@@ -460,8 +480,29 @@ function buildDefaultSchemeRules(scheme, context) {
     }
   }
 
-  // 2. Gender Exclusions (Strict)
-  if (text.includes('girl') || text.includes('women') || text.includes('female') || text.includes('mother') || text.includes('widow') || text.includes('kanyashree') || text.includes('bhandar') || text.includes('sukanya') || text.includes('matru')) {
+  // 2. Gender & Age Exclusions for Girl Child vs Female Schemes
+  const isGirlChild =
+    text.includes('girl child') ||
+    text.includes('girl') ||
+    text.includes('sukanya') ||
+    text.includes('kanyashree') ||
+    text.includes('balika') ||
+    text.includes('kanya sumangala') ||
+    text.includes('single girl') ||
+    (scheme.tag && scheme.tag.toLowerCase().includes('girl'));
+
+  if (isGirlChild) {
+    rules.all.push({ field: 'person.gender', operator: 'EQ', value: 'FEMALE' });
+    rules.all.push({ field: 'person.age', operator: 'LT', value: 21 });
+  } else if (
+    text.includes('women') ||
+    text.includes('female') ||
+    text.includes('mother') ||
+    text.includes('widow') ||
+    text.includes('bhandar') ||
+    text.includes('matru') ||
+    scheme.category === 'Women'
+  ) {
     rules.all.push({ field: 'person.gender', operator: 'EQ', value: 'FEMALE' });
   }
 

@@ -28,11 +28,13 @@ import { DecorativeBackground } from '../../components/DecorativeBackground';
 import { AdminDemoButton } from '../../components/AdminDemoButton';
 import { APIProvider, Map, Marker, Circle } from '@vis.gl/react-google-maps';
 import type { Theme } from '../../hooks/useTheme';
+import { API_BASE_URL } from '../../services/api';
 import {
   fetchAdminComplaintById,
   updateComplaintStatusApi,
   assignComplaintApi,
   addComplaintRemarkApi,
+  createAdminInquiryApi,
   fetchWorkflowMetaDataApi,
   getAdminUser,
   clearAdminAuth,
@@ -41,6 +43,14 @@ import {
   type OfficerItem,
   type RemarkItem,
 } from '../../api/adminApi';
+
+function formatMediaUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  return new URL(url, API_BASE_URL).toString();
+}
 
 interface AdminComplaintDetailPageProps {
   complaintId: string;
@@ -68,12 +78,19 @@ const MAP_STYLES = [
 ];
 
 const WORKFLOW_STATUSES = [
-  { value: 'OPEN', label: 'Open' },
-  { value: 'ASSIGNED', label: 'Assigned' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'SUBMITTED', label: 'Submitted' },
+  { value: 'ACKNOWLEDGED', label: 'Acknowledged' },
+  { value: 'DEPARTMENT_ASSIGNED', label: 'Department Assigned' },
+  { value: 'INVESTIGATION_IN_PROGRESS', label: 'Investigation In Progress' },
+  { value: 'ACTION_TAKEN', label: 'Action Taken' },
   { value: 'RESOLVED', label: 'Resolved' },
   { value: 'CLOSED', label: 'Closed' },
+  { value: 'REOPENED', label: 'Reopened' },
+  { value: 'MORE_INFO_REQUIRED', label: 'More Info Required' },
   { value: 'ESCALATED', label: 'Escalated' },
+  { value: 'OPEN', label: 'Open (Legacy)' },
+  { value: 'ASSIGNED', label: 'Assigned (Legacy)' },
+  { value: 'IN_PROGRESS', label: 'In Progress (Legacy)' },
 ];
 
 export function AdminComplaintDetailPage({
@@ -106,6 +123,32 @@ export function AdminComplaintDetailPage({
   // Remarks state
   const [newRemarkText, setNewRemarkText] = useState('');
   const [postingRemark, setPostingRemark] = useState(false);
+
+  // Ask Citizen Inquiry state
+  const [inquiryQuestion, setInquiryQuestion] = useState('');
+  const [sendingInquiry, setSendingInquiry] = useState(false);
+  const [inquirySuccessMsg, setInquirySuccessMsg] = useState<string | null>(null);
+
+  const handleSendInquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!complaint || !inquiryQuestion.trim()) return;
+
+    setSendingInquiry(true);
+    setInquirySuccessMsg(null);
+
+    const res = await createAdminInquiryApi(complaint.id, inquiryQuestion.trim());
+
+    setSendingInquiry(false);
+
+    if (res.success) {
+      setInquiryQuestion('');
+      setInquirySuccessMsg('Question sent to citizen successfully.');
+      setTimeout(() => setInquirySuccessMsg(null), 4000);
+      loadData();
+    } else {
+      setError(res.error || 'Failed to send inquiry to citizen.');
+    }
+  };
 
   // Load complaint & workflow metadata
   const loadData = useCallback(async (useDemo = demo) => {
@@ -292,7 +335,14 @@ export function AdminComplaintDetailPage({
   };
 
   const getPriorityBadge = (priority: string) => {
-    switch (priority) {
+    const p = (priority || '').toUpperCase();
+    switch (p) {
+      case 'CRITICAL':
+        return (
+          <span className="inline-flex items-center rounded-md bg-purple-500/15 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-500/30">
+            Critical Priority
+          </span>
+        );
       case 'HIGH':
         return (
           <span className="inline-flex items-center rounded-md bg-red-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 border border-red-500/20">
@@ -301,7 +351,7 @@ export function AdminComplaintDetailPage({
         );
       case 'MEDIUM':
         return (
-          <span className="inline-flex items-center rounded-md bg-amber500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/20">
             Medium Priority
           </span>
         );
@@ -494,48 +544,62 @@ export function AdminComplaintDetailPage({
                   </div>
 
                   {/* Interactive Map Visual */}
-                  <div className="mt-4 relative h-60 w-full overflow-hidden rounded-2xl border border-border-subtle bg-canvas/80 flex items-center justify-center">
-                    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
-                      <Map
-                        defaultCenter={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
-                        defaultZoom={15}
-                        gestureHandling={'greedy'}
-                        disableDefaultUI={true}
-                        styles={MAP_STYLES}
-                        className="w-full h-full absolute inset-0"
-                      >
-                        <Circle
-                          center={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
-                          radius={60}
-                          fillColor="#E38F55"
-                          fillOpacity={0.25}
-                          strokeColor="#E38F55"
-                          strokeOpacity={0}
-                          strokeWeight={0}
-                          clickable={false}
-                        />
-                        <Marker 
-                          position={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
-                          icon={{
-                            path: 'M 0, 0 m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
-                            fillColor: '#E38F55',
-                            fillOpacity: 1,
-                            strokeColor: '#FFFFFF',
-                            strokeWeight: 4,
-                            scale: 1.5
-                          }}
-                        />
-                      </Map>
-                    </APIProvider>
+                  <div className="mt-4 relative h-64 w-full overflow-hidden rounded-2xl border border-border-subtle bg-canvas/80 flex items-center justify-center">
+                    {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+                      <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+                        <Map
+                          defaultCenter={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                          defaultZoom={15}
+                          gestureHandling={'greedy'}
+                          disableDefaultUI={true}
+                          styles={MAP_STYLES}
+                          className="w-full h-full absolute inset-0"
+                        >
+                          <Circle
+                            center={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                            radius={60}
+                            fillColor="#E38F55"
+                            fillOpacity={0.25}
+                            strokeColor="#E38F55"
+                            strokeOpacity={0}
+                            strokeWeight={0}
+                            clickable={false}
+                          />
+                          <Marker 
+                            position={{ lat: complaint.latitude ?? 22.4831, lng: complaint.longitude ?? 88.1092 }}
+                            icon={{
+                              path: 'M 0, 0 m -10, 0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0',
+                              fillColor: '#E38F55',
+                              fillOpacity: 1,
+                              strokeColor: '#FFFFFF',
+                              strokeWeight: 4,
+                              scale: 1.5
+                            }}
+                          />
+                        </Map>
+                      </APIProvider>
+                    ) : (
+                      <iframe
+                        title="Incident Location Map"
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        marginHeight={0}
+                        marginWidth={0}
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${(complaint.longitude ?? 88.1092) - 0.008}%2C${(complaint.latitude ?? 22.4831) - 0.008}%2C${(complaint.longitude ?? 88.1092) + 0.008}%2C${(complaint.latitude ?? 22.4831) + 0.008}&layer=mapnik&marker=${complaint.latitude ?? 22.4831}%2C${complaint.longitude ?? 88.1092}`}
+                        className="w-full h-full border-0 absolute inset-0"
+                      />
+                    )}
                     
                     {/* Overlay info */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center justify-center text-center p-3 rounded-2xl bg-surface/90 backdrop-blur-sm shadow-soft border border-border-subtle">
-                      <p className="text-[11px] font-bold text-ink-900">{complaint.location}</p>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center justify-center text-center px-4 py-2 rounded-2xl bg-surface/95 backdrop-blur-sm shadow-soft border border-border-subtle max-w-[90%]">
+                      <p className="text-[11px] font-bold text-ink-900 truncate max-w-full">{complaint.location}</p>
                       <a
                         href={`https://maps.google.com/?q=${complaint.latitude ?? 22.4831},${complaint.longitude ?? 88.1092}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-brand-orange hover:underline"
+                        className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-brand-orange hover:underline"
                       >
                         <span>Open in Google Maps</span>
                         <ExternalLink className="h-3 w-3" />
@@ -562,12 +626,22 @@ export function AdminComplaintDetailPage({
 
                   {(complaint.evidence?.length || complaint.imageUrl) ? (
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {(complaint.evidence?.length ? complaint.evidence : [{ id: 'legacy', mediaUrl: complaint.imageUrl!, mediaType: 'PHOTO' as const }]).map((item) => (
-                        <a key={item.id} href={item.mediaUrl} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-2xl border border-border-subtle bg-canvas/40">
-                          {item.mediaType === 'VIDEO' ? <video src={item.mediaUrl} controls className="h-40 w-full object-cover" /> : <img src={item.mediaUrl} alt="Uploaded evidence" className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
-                          <p className="flex items-center gap-1 px-3 py-2 text-[11px] font-semibold text-ink-700"><ExternalLink className="h-3 w-3" />Open {item.mediaType.toLowerCase()}</p>
-                        </a>
-                      ))}
+                      {(complaint.evidence?.length ? complaint.evidence : [{ id: 'legacy', mediaUrl: complaint.imageUrl!, mediaType: 'PHOTO' as const }]).map((item) => {
+                        const fullUrl = formatMediaUrl(item.mediaUrl);
+                        return (
+                          <a key={item.id} href={fullUrl} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-2xl border border-border-subtle bg-canvas/40">
+                            {item.mediaType === 'VIDEO' ? (
+                              <video src={fullUrl} controls className="h-40 w-full object-cover" />
+                            ) : (
+                              <img src={fullUrl} alt="Uploaded evidence" className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                            )}
+                            <p className="flex items-center gap-1 px-3 py-2 text-[11px] font-semibold text-ink-700">
+                              <ExternalLink className="h-3 w-3" />
+                              Open {item.mediaType.toLowerCase()}
+                            </p>
+                          </a>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-canvas/40 py-8 text-center">
@@ -576,6 +650,60 @@ export function AdminComplaintDetailPage({
                     </div>
                   )}
                 </div>
+
+                {/* Department Inquiries & Citizen Replies Card */}
+                {Boolean(complaint.inquiries?.length) && (
+                  <div className="rounded-3xl border border-amber-500/30 bg-surface p-6 shadow-soft">
+                    <h2 className="flex items-center gap-2 font-display text-base font-bold text-ink-900">
+                      <MessageSquare className="h-4 w-4 text-amber-500" />
+                      <span>Department Inquiries &amp; Citizen Replies</span>
+                    </h2>
+                    <div className="mt-4 space-y-4">
+                      {complaint.inquiries?.map((inq) => (
+                        <div key={inq.id} className="rounded-2xl border border-border-subtle bg-canvas/40 p-4">
+                          <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                            <span className="text-xs font-bold text-ink-900">{inq.subject || 'Information Request'}</span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${inq.status === 'CLOSED' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                              {inq.status}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 space-y-2.5">
+                            {inq.messages?.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`p-3.5 rounded-2xl text-xs ${
+                                  msg.senderType === 'CITIZEN'
+                                    ? 'bg-brand-mint/15 border border-brand-mint/30 ml-4'
+                                    : 'bg-surface border border-border-subtle mr-4'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between font-semibold text-ink-900 mb-1">
+                                  <span>{msg.senderType === 'CITIZEN' ? '👤 Citizen Answer' : `🏛️ ${msg.senderName || 'Department'}`}</span>
+                                  <span className="text-[10px] font-normal text-ink-400">
+                                    {new Date(msg.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-ink-700 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                                {msg.attachmentUrl && (
+                                  <a
+                                    href={formatMediaUrl(msg.attachmentUrl)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-[11px] font-bold text-brand-orange border border-border-subtle hover:bg-canvas"
+                                  >
+                                    <ImageIcon className="h-3.5 w-3.5" />
+                                    <span>View Citizen Photo / Document</span>
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Workflow Control Panels & Escalation Status */}
@@ -690,6 +818,54 @@ export function AdminComplaintDetailPage({
                         <>
                           <CheckCircle2 className="h-4 w-4 text-brand-orange" />
                           <span>Update Status</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* 1.5 ASK CITIZEN FOR INFORMATION CARD */}
+                <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-lift">
+                  <h2 className="flex items-center gap-2 font-display text-base font-bold text-amber-900 dark:text-amber-200">
+                    <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span>Ask Citizen for Information</span>
+                  </h2>
+                  <p className="mt-1 text-[11px] text-amber-800/80 dark:text-amber-300">
+                    Request photos, consumer numbers, or clarifications directly from the citizen.
+                  </p>
+
+                  {inquirySuccessMsg && (
+                    <div className="mt-3 flex items-center gap-2 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 px-3.5 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                      <Check className="h-4 w-4 shrink-0" />
+                      <span>{inquirySuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSendInquiry} className="mt-4 space-y-3">
+                    <div>
+                      <textarea
+                        rows={3}
+                        value={inquiryQuestion}
+                        onChange={(e) => setInquiryQuestion(e.target.value)}
+                        placeholder="e.g. Please provide your consumer electricity number or a clearer photo of the pipe leak..."
+                        className="w-full rounded-2xl border border-border-subtle bg-surface p-3 text-xs text-ink-900 placeholder:text-ink-400 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={sendingInquiry || !inquiryQuestion.trim()}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-soft transition-all hover:bg-amber-700 disabled:opacity-50"
+                    >
+                      {sendingInquiry ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Sending Question...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>Send Question to Citizen</span>
                         </>
                       )}
                     </button>

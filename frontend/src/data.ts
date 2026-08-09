@@ -1,5 +1,6 @@
 import {
   Bug,
+  Clock,
   Cpu,
   Database,
   FileText,
@@ -25,6 +26,7 @@ export type TabId =
   | 'schemes'
   | 'helpline'
   | 'complaints'
+  | 'track'
   | 'verification'
 
 export interface Tab {
@@ -39,8 +41,9 @@ export const tabs: Tab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutGrid },
   { id: 'map', label: 'Block map', icon: Map, officerOnly: true },
   { id: 'schemes', label: 'Scheme catalog', icon: FileText },
-  { id: 'helpline', label: 'Helpline', icon: Phone },
+  { id: 'helpline', label: 'Helpline', icon: Phone, officerOnly: true },
   { id: 'complaints', label: 'File complaint', icon: FileText },
+  { id: 'track', label: 'Track complaint', icon: Clock },
   { id: 'chat', label: 'Sahayak chat', icon: MessagesSquare },
   { id: 'profile', label: 'My profile', icon: UserRound },
 ]

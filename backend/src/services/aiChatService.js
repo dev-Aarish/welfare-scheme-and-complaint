@@ -196,20 +196,31 @@ async function callGemini(systemPrompt, messages) {
   if (!apiKey) return null;
 
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    config: {
-      systemInstruction: systemPrompt,
-      temperature: 0.4,
-      maxOutputTokens: 500,
-    },
-    contents: messages.map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    })),
-  });
+  const contents = messages.map((m) => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+  const config = {
+    systemInstruction: systemPrompt,
+    temperature: 0.4,
+    maxOutputTokens: 500,
+  };
 
-  return response?.text?.trim() || null;
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      config,
+      contents,
+    });
+    return response?.text?.trim() || null;
+  } catch (err) {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-lite',
+      config,
+      contents,
+    });
+    return response?.text?.trim() || null;
+  }
 }
 
 /* ── Orchestrator ────────────────────────────────────────── */

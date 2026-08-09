@@ -1,6 +1,6 @@
 import express from 'express';
 import { adminLogin } from '../controllers/adminAuthController.js';
-import { getDocumentFile, listDocuments, uploadDocument } from '../controllers/documentController.js';
+import { deleteDocument, getDocumentFile, listDocuments, uploadDocument } from '../controllers/documentController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { prisma } from '../config/prismaClient.js';
 
@@ -109,6 +109,12 @@ router.post('/documents', requireAuth, uploadDocument);
  * Returns a signed (time-limited) URL for the citizen to view their upload.
  */
 router.get('/documents/:id/file', requireAuth, getDocumentFile);
+
+/**
+ * DELETE /api/auth/documents/:docType
+ * Deletes a citizen's verification document.
+ */
+router.delete('/documents/:docType', requireAuth, deleteDocument);
 
 /**
  * GET /api/auth/profile — returns the household profile (the user's own

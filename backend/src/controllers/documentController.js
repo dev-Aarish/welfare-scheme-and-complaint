@@ -1,5 +1,5 @@
 import { prisma } from '../config/prismaClient.js';
-import { storageEnabled } from '../config/supabaseClient.js';
+import { storageEnabled, supabaseAdmin } from '../config/supabaseClient.js';
 import { saveMedia } from '../utils/fileStore.js';
 import { saveDocumentToStorage, signDocumentUrl } from '../utils/storage.js';
 
@@ -150,6 +150,55 @@ export async function getDocumentFile(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Failed to load document.',
+    });
+  }
+}
+
+export async function deleteDocument(req, res) {
+  try {
+    if (!req.user?.localUser) {
+      return res.status(401).json({
+        success: false,
+        error: 'Sign in to delete documents.',
+      });
+    }
+
+    const { docType } = req.params;
+    const document = await prisma.citizenDocument.findFirst({
+      where: {
+        userId: req.user.localUser.id,
+        OR: [{ docType }, { id: docType }],
+      },
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found.',
+      });
+    }
+
+    if (storageEnabled && document.fileUrl?.startsWith('citizen-documents/')) {
+      try {
+        await supabaseAdmin.storage.from('citizen-documents').remove([document.fileUrl]);
+      } catch (err) {
+        console.error('Storage deletion error:', err);
+      }
+    }
+
+    await prisma.citizenDocument.delete({
+      where: { id: document.id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Document deleted successfully.',
+    });
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete document.',
     });
   }
 }

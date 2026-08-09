@@ -379,7 +379,8 @@ function inferCategory(title = '', desc = '') {
 
 /** Helper to infer priority if missing in database record */
 function inferPriority(status) {
-  if (status === 'ESCALATED' || status === 'PENDING' || status === 'OPEN') return 'HIGH';
+  if (status === 'ESCALATED') return 'CRITICAL';
+  if (status === 'PENDING' || status === 'OPEN') return 'HIGH';
   if (status === 'IN_PROGRESS' || status === 'ASSIGNED') return 'MEDIUM';
   return 'LOW';
 }
@@ -387,7 +388,7 @@ function inferPriority(status) {
 /** Format database complaint record into API shape */
 function formatComplaintRecord(comp) {
   const category = comp.category || inferCategory(comp.title, comp.description);
-  const priority = comp.priority || inferPriority(comp.status);
+  const priority = (comp.priority || inferPriority(comp.status)).toUpperCase();
 
   return {
     id: comp.id,
@@ -427,8 +428,47 @@ function formatComplaintRecord(comp) {
       changedBy: h.changedBy ? (h.changedBy.fullName || h.changedBy.name) : 'System Admin',
       remark: h.remark,
       createdAt: h.createdAt
+    })) : [],
+    inquiries: comp.inquiries ? comp.inquiries.map(inq => ({
+      id: inq.id,
+      subject: inq.subject,
+      status: inq.status,
+      createdAt: inq.createdAt,
+      updatedAt: inq.updatedAt,
+      messages: inq.messages ? inq.messages.map(m => ({
+        id: m.id,
+        senderType: m.senderType,
+        senderName: m.senderName,
+        message: m.message,
+        attachmentUrl: m.attachmentUrl,
+        createdAt: m.createdAt,
+      })) : []
     })) : []
   };
+}
+
+/** Helper to resolve or get a valid PostgreSQL User ID for foreign keys (changedById, adminId) */
+async function resolveAdminUserId(adminUser) {
+  if (!adminUser || !adminUser.id) return null;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: adminUser.id } });
+    if (user) return user.id;
+
+    const email = adminUser.email || 'admin@wb.gov.in';
+    const existingByEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingByEmail) return existingByEmail.id;
+
+    const newAdmin = await prisma.user.create({
+      data: {
+        email,
+        fullName: adminUser.name || adminUser.fullName || 'System Administrator',
+        role: 'ADMIN',
+      },
+    });
+    return newAdmin.id;
+  } catch (err) {
+    return null;
+  }
 }
 
 /**
@@ -478,7 +518,17 @@ export async function getComplaints(req, res) {
       const whereClause = {};
 
       if (statusFilter && statusFilter !== 'ALL') {
-        whereClause.status = statusFilter;
+        if (statusFilter === 'OPEN') {
+          whereClause.status = 'OPEN';
+        } else if (statusFilter === 'PENDING') {
+          whereClause.status = { in: ['OPEN', 'PENDING'] };
+        } else if (statusFilter === 'IN_PROGRESS') {
+          whereClause.status = { in: ['ASSIGNED', 'IN_PROGRESS'] };
+        } else if (statusFilter === 'RESOLVED') {
+          whereClause.status = { in: ['RESOLVED', 'CLOSED'] };
+        } else {
+          whereClause.status = statusFilter;
+        }
       }
 
       if (escalatedFilter === 'true') {
@@ -611,6 +661,7 @@ export async function getComplaintById(req, res) {
           OR: [
             { id: id },
             { ref: id },
+            { ref: id.toUpperCase() },
           ],
         },
         include: {
@@ -618,7 +669,13 @@ export async function getComplaintById(req, res) {
           assignedOfficer: true,
           evidence: { orderBy: { createdAt: 'desc' } },
           remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
-          statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
+          statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } },
+          inquiries: {
+            include: {
+              messages: { orderBy: { createdAt: 'asc' } }
+            },
+            orderBy: { createdAt: 'desc' }
+          }
         },
       });
 
@@ -663,23 +720,53 @@ export async function assignComplaint(req, res) {
     const { id } = req.params;
     const { departmentId, officerId } = req.body;
     const adminUser = req.user;
+    const validAdminId = await resolveAdminUserId(adminUser);
 
     let updatedComplaint = null;
 
     try {
       const dbComplaint = await prisma.complaint.findFirst({
-        where: { OR: [{ id }, { ref: id }] },
+        where: { OR: [{ id }, { ref: id }, { ref: id.toUpperCase() }] },
       });
 
       if (dbComplaint) {
         const updateData = {};
-        if (departmentId !== undefined) updateData.assignedDepartmentId = departmentId || null;
-        if (officerId !== undefined) updateData.assignedOfficerId = officerId || null;
+
+        if (departmentId) {
+          const dept = await prisma.department.findFirst({
+            where: { OR: [{ id: departmentId }, { name: { contains: departmentId, mode: 'insensitive' } }] }
+          });
+          if (dept) updateData.assignedDepartmentId = dept.id;
+        } else if (departmentId === null || departmentId === '') {
+          updateData.assignedDepartmentId = null;
+        }
+
+        if (officerId) {
+          let off = await prisma.user.findFirst({ where: { id: officerId } });
+          if (!off) {
+            const sampleOfficer = SAMPLE_OFFICERS.find(o => o.id === officerId || o.name.toLowerCase() === officerId.toLowerCase());
+            if (sampleOfficer) {
+              off = await prisma.user.findUnique({ where: { email: sampleOfficer.email } });
+              if (!off) {
+                off = await prisma.user.create({
+                  data: {
+                    email: sampleOfficer.email,
+                    fullName: sampleOfficer.name,
+                    role: 'OFFICER',
+                  }
+                });
+              }
+            }
+          }
+          if (off) updateData.assignedOfficerId = off.id;
+        } else if (officerId === null || officerId === '') {
+          updateData.assignedOfficerId = null;
+        }
 
         let newStatus = dbComplaint.status;
-        if (dbComplaint.status === 'OPEN' || dbComplaint.status === 'PENDING') {
-          newStatus = 'ASSIGNED';
-          updateData.status = 'ASSIGNED';
+        if (departmentId || officerId) {
+          newStatus = 'DEPARTMENT_ASSIGNED';
+          updateData.status = 'DEPARTMENT_ASSIGNED';
         }
 
         const [resComplaint] = await prisma.$transaction([
@@ -691,7 +778,13 @@ export async function assignComplaint(req, res) {
               assignedOfficer: true,
               evidence: { orderBy: { createdAt: 'desc' } },
               remarks: { include: { admin: true }, orderBy: { createdAt: 'desc' } },
-              statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } }
+              statusHistory: { include: { changedBy: true }, orderBy: { createdAt: 'desc' } },
+              inquiries: {
+                include: {
+                  messages: { orderBy: { createdAt: 'asc' } }
+                },
+                orderBy: { createdAt: 'desc' }
+              }
             },
           }),
           ...(newStatus !== dbComplaint.status ? [
@@ -700,7 +793,7 @@ export async function assignComplaint(req, res) {
                 complaintId: dbComplaint.id,
                 previousStatus: dbComplaint.status,
                 newStatus: newStatus,
-                changedById: adminUser.id,
+                changedById: validAdminId,
                 remark: 'Complaint assigned to department / officer.',
               },
             })
@@ -732,8 +825,8 @@ export async function assignComplaint(req, res) {
       }
 
       const prevStatus = sample.status;
-      if (sample.status === 'OPEN' || sample.status === 'PENDING') {
-        sample.status = 'ASSIGNED';
+      if (departmentId || officerId) {
+        sample.status = 'DEPARTMENT_ASSIGNED';
       }
 
       sample.updatedAt = new Date().toISOString();
@@ -773,8 +866,24 @@ export async function updateComplaintStatus(req, res) {
     const { id } = req.params;
     const { status, remark } = req.body;
     const adminUser = req.user;
+    const validAdminId = await resolveAdminUserId(adminUser);
 
-    const VALID_STATUSES = ['OPEN', 'PENDING', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'ESCALATED'];
+    const VALID_STATUSES = [
+      'SUBMITTED',
+      'ACKNOWLEDGED',
+      'DEPARTMENT_ASSIGNED',
+      'INVESTIGATION_IN_PROGRESS',
+      'ACTION_TAKEN',
+      'RESOLVED',
+      'CLOSED',
+      'REOPENED',
+      'MORE_INFO_REQUIRED',
+      'ESCALATED',
+      'OPEN',
+      'PENDING',
+      'ASSIGNED',
+      'IN_PROGRESS'
+    ];
     if (!status || !VALID_STATUSES.includes(status.toUpperCase())) {
       return res.status(400).json({
         success: false,
@@ -787,7 +896,7 @@ export async function updateComplaintStatus(req, res) {
 
     try {
       const dbComplaint = await prisma.complaint.findFirst({
-        where: { OR: [{ id }, { ref: id }] },
+        where: { OR: [{ id }, { ref: id }, { ref: id.toUpperCase() }] },
       });
 
       if (dbComplaint) {
@@ -810,7 +919,7 @@ export async function updateComplaintStatus(req, res) {
               complaintId: dbComplaint.id,
               previousStatus: previousStatus,
               newStatus: newStatusUpper,
-              changedById: adminUser.id,
+              changedById: validAdminId,
               remark: remark || `Status changed from ${previousStatus} to ${newStatusUpper}`,
             },
           }),
@@ -869,6 +978,7 @@ export async function addComplaintRemark(req, res) {
     const { id } = req.params;
     const { remark } = req.body;
     const adminUser = req.user;
+    const validAdminId = await resolveAdminUserId(adminUser);
 
     if (!remark || !remark.trim()) {
       return res.status(400).json({
@@ -882,14 +992,14 @@ export async function addComplaintRemark(req, res) {
 
     try {
       const dbComplaint = await prisma.complaint.findFirst({
-        where: { OR: [{ id }, { ref: id }] },
+        where: { OR: [{ id }, { ref: id }, { ref: id.toUpperCase() }] },
       });
 
       if (dbComplaint) {
         const createdRemark = await prisma.complaintRemark.create({
           data: {
             complaintId: dbComplaint.id,
-            adminId: adminUser.id,
+            adminId: validAdminId,
             remark: trimmedRemark,
           },
           include: { admin: true },
@@ -933,7 +1043,7 @@ export async function addComplaintRemark(req, res) {
     console.error('Error in addComplaintRemark:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to post admin remark',
+      error: 'Failed to add complaint remark',
     });
   }
 }
@@ -1003,6 +1113,81 @@ export async function getWorkflowMeta(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Failed to load workflow metadata',
+    });
+  }
+}
+
+/**
+ * POST /api/admin/complaints/:id/inquiries
+ * Allows admin/officer to ask citizen for additional information or documents.
+ */
+export async function createAdminInquiry(req, res) {
+  try {
+    const { id } = req.params;
+    const { subject, question } = req.body;
+    const adminUser = req.user;
+    const validAdminId = await resolveAdminUserId(adminUser);
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Question text is required',
+      });
+    }
+
+    const qText = question.trim();
+    const subj = subject ? subject.trim() : 'Additional Information Required';
+
+    const dbComplaint = await prisma.complaint.findFirst({
+      where: { OR: [{ id }, { ref: id }, { ref: id.toUpperCase() }] },
+    });
+
+    if (!dbComplaint) {
+      return res.status(404).json({ success: false, error: 'Complaint not found' });
+    }
+
+    const previousStatus = dbComplaint.status;
+    const newStatus = 'MORE_INFO_REQUIRED';
+
+    const [inquiry] = await prisma.$transaction([
+      prisma.complaintInquiry.create({
+        data: {
+          complaintId: dbComplaint.id,
+          subject: subj,
+          status: 'OPEN',
+          messages: {
+            create: [
+              {
+                senderType: 'ADMIN',
+                senderName: adminUser.fullName || adminUser.name || 'Department Officer',
+                message: qText,
+              },
+            ],
+          },
+        },
+        include: { messages: true },
+      }),
+      prisma.notification.create({
+        data: {
+          complaintId: dbComplaint.id,
+          targetType: 'CITIZEN',
+          type: 'INQUIRY_REQUESTED',
+          title: 'New Message from Department',
+          message: `Department: ${qText}`,
+        },
+      }),
+    ]);
+
+    return res.status(201).json({
+      success: true,
+      inquiry,
+      message: 'Inquiry posted to citizen successfully',
+    });
+  } catch (error) {
+    console.error('Error in createAdminInquiry:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create admin inquiry',
     });
   }
 }
