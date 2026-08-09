@@ -16,11 +16,10 @@ export function DecorativeBackground({
         insetForSidebar ? 'lg:left-[264px]' : ''
       }`}
     >
-      {/* Concentric spiral — top-left (slow ambient drift, Animations.md §3.3) */}
+      {/* Concentric spiral — top-left (static; single ambient spiral, no drift) */}
       <svg
         viewBox="0 0 240 240"
-        className="doodle-drift absolute -left-12 -top-14 h-72 w-72 text-brand-mint opacity-20 dark:opacity-10 max-md:-left-10 max-md:-top-12 max-md:h-44 max-md:w-44 max-md:opacity-10"
-        style={{ animationDuration: '38s' }}
+        className="absolute -left-12 -top-14 h-72 w-72 text-brand-mint opacity-20 dark:opacity-10 max-md:-left-10 max-md:-top-12 max-md:h-44 max-md:w-44 max-md:opacity-10"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
