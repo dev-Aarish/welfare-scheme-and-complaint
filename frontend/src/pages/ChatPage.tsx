@@ -33,22 +33,6 @@ const LANG_NAMES: Record<string, string> = {
   en: 'English',
 }
 
-const citizenInitialMessages: ChatMessage[] = [
-  {
-    id: 1,
-    role: 'bot',
-    text: 'নমস্কার, Asha! 🙏 I\u2019m Sahayak — your welfare assistant. Ask me anything in Bengali, Hindi or English, by text or voice.',
-  },
-]
-
-const officerInitialMessages: ChatMessage[] = [
-  {
-    id: 1,
-    role: 'bot',
-    text: officerIntroMessages.bn,
-  },
-]
-
 /* ── Conversation persistence (localStorage, keyed per user + role) ────────
    Keeps the chat across refreshes and re-visits. Stored only in the user's
    own browser — never uploaded. Keyed by role + user id so guest demo chats
@@ -511,6 +495,7 @@ export function ChatPage({ role }: { role: Role }) {
       demoVoice()
       return
     }
+    const recognition = new SpeechRecognitionCtor()
     const LANG_REC_MAP: Record<string, string> = {
       bn: 'bn-IN',
       hi: 'hi-IN',
@@ -537,7 +522,7 @@ export function ChatPage({ role }: { role: Role }) {
         // recognition already ended
       }
     }
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const text = event.results?.[0]?.[0]?.transcript?.trim()
       setVoiceStatus('idle')
       if (text) {
