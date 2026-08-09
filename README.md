@@ -2,9 +2,9 @@ An AI-powered citizen assistance platform that simplifies access to government w
 
 ## Auth setup (Supabase)
 
-1. Create a free project at https://supabase.com (Postgres is included; you can keep your local Prisma DB for app data).
+1. Create a free project at https://supabase.com (Postgres is included — it hosts **both** auth **and** all app data).
 2. Dashboard → Project Settings → API: copy the Project URL and anon `publishable` key.
-3. Backend: put both in `backend/.env` as `SUPABASE_URL` and `SUPABASE_ANON_KEY`, then `cd backend && npx prisma migrate dev`.
+3. Backend: put both in `backend/.env` as `SUPABASE_URL` and `SUPABASE_ANON_KEY`, and set `DATABASE_URL` to your Supabase Postgres connection string (Project Settings → Database → "Connection string" → URI; the Transaction pooler with `?pgbouncer=true` is recommended for Prisma). Then `cd backend && npx prisma migrate deploy` to create the tables (or run `backend/prisma/supabase-schema.sql` in the Supabase SQL Editor).
 4. Frontend: copy `frontend/.env.example` to `frontend/.env` and fill `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 5. Optional (recommended for real OTP delivery): in Authentication → Email Templates, open the **Sign In** template and add `{{ .Token }}` so the email shows the 6-digit code. Out of the box Supabase emails a magic link; the app's OTP screen expects a code.
 6. Run both servers (`npm run dev` in `backend/` and `frontend/`).
