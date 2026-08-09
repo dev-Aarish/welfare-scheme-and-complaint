@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import schemeRoutes from './routes/schemeRoutes.js';
 import familyRoutes from './routes/familyRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
@@ -11,12 +11,28 @@ import { prisma } from './config/prismaClient.js';
 import { initEscalationScheduler } from './services/escalationService.js';
 import { seedDepartments } from './seeders/departmentSeeder.js';
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5100;
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  // Production Vercel frontend — set FRONTEND_URL env var on Render
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  // Allow all *.vercel.app subdomains for preview deployments
+  /^https:\/\/.*\.vercel\.app$/,
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser requests (Postman, mobile)
+    const allowed = allowedOrigins.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    );
+    callback(null, allowed ? origin : false);
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '20mb' }));
 app.use('/uploads', express.static('uploads'));
 
