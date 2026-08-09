@@ -6,7 +6,7 @@
 
 ## 🔗 Project Links
 
-* 🌐 **Live Deployed Application:** [https://welfare-scheme-and-complaint-aufh2q7x4-rimmon1234s-projects.vercel.app/](https://welfare-scheme-and-complaint-aufh2q7x4-rimmon1234s-projects.vercel.app/)
+* 🌐 **Live Deployed Application:** [https://welfare-scheme-and-complaint.vercel.app/](https://welfare-scheme-and-complaint.vercel.app/)
 * 📊 **PPT Presentation Link:** [https://canva.link/ct3s6lcd6i750yx](https://canva.link/ct3s6lcd6i750yx)
 * 🎥 **Video Demo Link:** `[Video Demo Link - Coming Soon]`
 
