@@ -1,5 +1,5 @@
-import React, { FormEvent, useEffect, useState } from 'react'
-import { CheckCircle2, FileText, ImageIcon, MapPin, Navigation, ShieldCheck, Upload, Video, Map, Copy, Check, ArrowRight, Sparkles, KeyRound } from 'lucide-react'
+import React, { type FormEvent, useEffect, useState } from 'react'
+import { CheckCircle2, FileText, ImageIcon, MapPin, Navigation, ShieldCheck, Upload, Video, Map, Copy, Check, ArrowRight, Sparkles } from 'lucide-react'
 import { PageHeader } from '../components/PageHeader'
 import { createComplaint } from '../services/api'
 import { classifyComplaint, type ClassificationResult } from '../services/complaintClassifier'
