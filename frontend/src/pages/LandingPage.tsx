@@ -339,9 +339,10 @@ function HeroSection({
 
   /* Count-up helper: [data-hero="stat-num"] with data-value="12 units". */
   const countUpStats = (tl: gsap.core.Timeline) => {
+    if (!scope.current) return
     const counters = gsap.utils.toArray<HTMLElement>(
       '[data-hero="stat-num"]',
-      scope.current as HTMLElement,
+      scope.current,
     )
     counters.forEach((el) => {
       const raw = el.dataset.value ?? '0'
@@ -374,30 +375,30 @@ function HeroSection({
       mm.add('(prefers-reduced-motion: reduce)', () => {})
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
-        tl.from('[data-hero="eyebrow"]', { y: 14, opacity: 0, duration: 0.5 })
+        tl.from('[data-hero="eyebrow"]', { y: 14, opacity: 0, duration: 0.5, clearProps: 'all' })
           .from(
             '[data-hero="line"]',
-            { yPercent: 115, duration: 0.7, stagger: 0.12 },
+            { yPercent: 115, duration: 0.7, stagger: 0.12, clearProps: 'all' },
             '-=0.3',
           )
           .from(
             '[data-hero="sub"]',
-            { y: 14, opacity: 0, duration: 0.5 },
+            { y: 14, opacity: 0, duration: 0.5, clearProps: 'all' },
             '-=0.4',
           )
           .from(
             '[data-hero="cta"]',
-            { y: 12, opacity: 0, duration: 0.4, stagger: 0.08 },
+            { y: 12, opacity: 0, duration: 0.4, stagger: 0.08, clearProps: 'all' },
             '-=0.35',
           )
           .from(
             '[data-hero="stat"]',
-            { y: 12, opacity: 0, duration: 0.4, stagger: 0.06 },
+            { y: 12, opacity: 0, duration: 0.4, stagger: 0.06, clearProps: 'all' },
             '-=0.3',
           )
           .from(
             '[data-hero="matcher"]',
-            { scale: 0.96, opacity: 0, duration: 0.6, ease: 'power2.out' },
+            { scale: 0.96, opacity: 0, duration: 0.6, ease: 'power2.out', clearProps: 'all' },
             '-=0.45',
           )
         countUpStats(tl)
@@ -436,28 +437,13 @@ function HeroSection({
               নমস্কার · West Bengal District Services
             </span>
 
-            <h1 className="mt-5 font-display text-[clamp(2.1rem,5.2vw,3.9rem)] font-bold leading-[1.04] tracking-tight text-ink-900">
-              <span className="block overflow-hidden">
+            <h1 className="mt-5 font-display text-[clamp(2.1rem,5.2vw,3.9rem)] font-bold leading-[1.1] tracking-tight text-ink-900">
+              <span className="block overflow-hidden pb-1.5 -mb-1.5">
                 <span data-hero="line" className="block">
-                  Every scheme you&rsquo;re{' '}
-                  <span className="relative whitespace-nowrap">
-                    entitled to,
-                    <svg
-                      viewBox="0 0 120 10"
-                      className="absolute -bottom-1.5 left-0 h-2.5 w-full text-brand-orange"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      preserveAspectRatio="none"
-                      aria-hidden
-                    >
-                      <path d="M2 7 C 14 2, 26 8, 38 4 S 62 8, 74 4 S 98 8, 118 5" />
-                    </svg>
-                  </span>
+                  Every scheme you&rsquo;re entitled to,
                 </span>
               </span>
-              <span className="block overflow-hidden">
+              <span className="block overflow-hidden pb-3 -mb-3">
                 <span data-hero="line" className="block">
                   found for your family.
                 </span>
@@ -474,19 +460,19 @@ function HeroSection({
               language.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
+            <div className="mt-7 flex flex-wrap items-start justify-start gap-4">
               <button
                 data-hero="cta"
                 onClick={onGetStarted}
-                className="flex items-center gap-2 rounded-2xl bg-brand-navy px-6 py-3.5 text-[13px] font-semibold uppercase tracking-[0.05em] text-navy-contrast shadow-soft transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2d2839] hover:shadow-lift focus-visible:outline-2 focus-visible:outline-brand-orange dark:hover:bg-[#d9d5cd]"
+                className="inline-flex w-fit items-center gap-2 rounded-2xl bg-brand-navy px-6 py-3.5 text-[13px] font-semibold uppercase tracking-[0.05em] text-navy-contrast shadow-soft transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2d2839] hover:shadow-lift focus-visible:outline-2 focus-visible:outline-brand-orange dark:hover:bg-[#d9d5cd]"
               >
-                Match me with my schemes
+                Check out all the schemes
                 <ArrowRight className="h-4 w-4" strokeWidth={2} />
               </button>
               <button
                 data-hero="cta"
                 onClick={() => scrollToSection('how-it-works')}
-                className="rounded-2xl border border-ink-900/15 bg-surface/60 px-6 py-3.5 text-[13px] font-semibold text-ink-900 backdrop-blur-sm transition-colors duration-150 hover:border-brand-orange hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
+                className="inline-flex w-fit items-center justify-center rounded-2xl border border-ink-900/15 bg-surface/60 px-6 py-3.5 text-[13px] font-semibold text-ink-900 backdrop-blur-sm transition-colors duration-150 hover:border-brand-orange hover:text-brand-orange focus-visible:outline-2 focus-visible:outline-brand-orange"
               >
                 See how it works
               </button>
@@ -730,7 +716,7 @@ function MatcherCard({ onGetStarted }: { onGetStarted: () => void }) {
         onClick={onGetStarted}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-navy px-5 py-3 text-[13px] font-semibold uppercase tracking-[0.05em] text-navy-contrast transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#2d2839] hover:shadow-lift focus-visible:outline-2 focus-visible:outline-brand-orange dark:hover:bg-[#d9d5cd]"
       >
-        Match me with my schemes
+        Check out all the schemes
         <ArrowRight className="h-4 w-4" strokeWidth={2} />
       </button>
     </div>
