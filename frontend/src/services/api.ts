@@ -43,7 +43,7 @@ export async function classifyComplaintWithGemini(payload: { title: string; desc
   return json.success && json.data ? json.data : null
 }
 
-export async function createComplaint(payload: CreateComplaintPayload, anonymous = false): Promise<{ ref: string; merged: boolean } | null> {
+export async function createComplaint(payload: CreateComplaintPayload, anonymous = false): Promise<{ ref: string; trackingPin?: string; merged: boolean } | null> {
   try {
     /* Anonymous mode must NEVER attach a stored session token — otherwise a
        visitor with a lingering (still-valid) session in storage would have
@@ -54,7 +54,12 @@ export async function createComplaint(payload: CreateComplaintPayload, anonymous
       body: JSON.stringify(payload),
     })
     const json = await res.json()
-    if (json.success && json.data?.ref) return { ref: json.data.ref, merged: Boolean(json.data.merged) }
+    if (json.success && json.data?.ref)
+      return {
+        ref: json.data.ref,
+        trackingPin: json.data.trackingPin,
+        merged: Boolean(json.data.merged),
+      }
     throw new Error(json.error || 'Failed to file complaint.')
   } catch (error) {
     console.error('Failed to create complaint:', error)

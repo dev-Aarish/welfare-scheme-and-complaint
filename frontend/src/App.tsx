@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DecorativeBackground } from './components/DecorativeBackground'
 import { AuthPage } from './pages/auth/AuthPage'
+import { LandingPage } from './pages/LandingPage'
 import { OfficerPage } from './pages/officer/OfficerPage'
 import { OfficerMapPage } from './pages/officer/OfficerMapPage'
 import { OfficerProfilePage } from './pages/officer/OfficerProfilePage'
@@ -69,7 +70,7 @@ function AppShell() {
   const [schemesMatched, setSchemesMatched] = useState<number | null>(null)
   const { theme, toggle } = useTheme()
   /* Supabase session when configured; guest role when demo mode. */
-  const { loading, session, role, guest, signOut } = useAuth()
+  const { loading, session, role, guest, signOut, signInAsGuest } = useAuth()
   const authed = guest || session !== null
 
   /* Real complaint records for the citizen overview — demo data in guest
@@ -236,7 +237,24 @@ function AppShell() {
     )
   }
 
-  /* Signed-out visitors land straight on the login / sign-up page. */
+  /* Public marketing landing — the front door for signed-out visitors. */
+  if (currentPath === '/' || currentPath === '/landing') {
+    return (
+      <div className="min-h-screen bg-canvas font-sans text-ink-900">
+        <DecorativeBackground insetForSidebar={false} />
+        <LandingPage
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onGetStarted={() => navigate('/login')}
+          onGuestDemo={() => signInAsGuest('citizen')}
+          onAnonComplaint={() => navigate('/file-complaint')}
+          onTrackComplaint={() => navigate('/complaints/track')}
+        />
+      </div>
+    )
+  }
+
+  /* Signed-out visitors at /login (or any other path) get the auth page. */
   return (
     <div className="min-h-screen bg-canvas font-sans text-ink-900">
       <DecorativeBackground insetForSidebar={false} />
