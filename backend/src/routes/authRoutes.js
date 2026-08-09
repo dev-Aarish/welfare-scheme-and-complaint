@@ -1,5 +1,6 @@
 import express from 'express';
 import { adminLogin } from '../controllers/adminAuthController.js';
+import { getDocumentFile, listDocuments, uploadDocument } from '../controllers/documentController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { prisma } from '../config/prismaClient.js';
 
@@ -89,6 +90,25 @@ router.put('/me', requireAuth, async (req, res) => {
     });
   }
 });
+
+/**
+ * GET /api/auth/documents
+ * Lists the signed-in citizen's verification documents and their statuses.
+ */
+router.get('/documents', requireAuth, listDocuments);
+
+/**
+ * POST /api/auth/documents
+ * Uploads a verification document (photo or PDF data URL). Stored as PENDING,
+ * then flipped to VERIFIED once the server-side records cross-check passes.
+ */
+router.post('/documents', requireAuth, uploadDocument);
+
+/**
+ * GET /api/auth/documents/:id/file
+ * Returns a signed (time-limited) URL for the citizen to view their upload.
+ */
+router.get('/documents/:id/file', requireAuth, getDocumentFile);
 
 /**
  * GET /api/auth/profile — returns the household profile (the user's own

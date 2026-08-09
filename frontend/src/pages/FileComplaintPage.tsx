@@ -10,6 +10,7 @@ import {
   Video,
 } from 'lucide-react'
 import { classifyComplaintWithGemini, createComplaint } from '../services/api'
+import { PageHeader } from '../components/PageHeader'
 
 type AIResult = {
   category: string
@@ -147,9 +148,10 @@ export function FileComplaintPage() {
   return (
     <div className="mx-auto max-w-[1100px]">
       <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-brand-orange">Grievance Redressal</p>
-        <h1 className="mt-2 font-display text-3xl font-bold text-ink-900 md:text-4xl">File a Complaint</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-700">Report a civic or public issue and help your community get the attention it deserves.</p>
+        <PageHeader
+          title="File a Complaint"
+          subtitle="Report a civic or public issue and help your community get the attention it deserves."
+        />
       </div>
       {submitted && <div role="status" className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-mint/30 bg-brand-mint/10 p-4 text-sm text-ink-900"><CheckCircle2 className="h-5 w-5 text-brand-mint" />{submitted.merged ? <>Your report was added to the existing complaint. Its priority has been increased. Reference: <strong>{submitted.ref}</strong>.</> : <>Complaint filed successfully. Your reference number is <strong>{submitted.ref}</strong>.</>}</div>}
       {submitError && <div role="alert" className="mb-6 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 p-4 text-sm text-ink-900">{submitError}</div>}

@@ -25,6 +25,7 @@ export type TabId =
   | 'schemes'
   | 'helpline'
   | 'complaints'
+  | 'verification'
 
 export interface Tab {
   id: TabId
